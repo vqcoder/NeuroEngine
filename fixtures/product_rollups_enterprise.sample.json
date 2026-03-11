@@ -1,0 +1,70 @@
+{
+  "mode": "enterprise",
+  "workspace_tier": "enterprise",
+  "enabled_modes": ["creator", "enterprise"],
+  "mode_resolution_note": null,
+  "source_schema_version": "1.0.0",
+  "creator": null,
+  "enterprise": {
+    "paid_lift_prior": {
+      "metric_key": "paid_lift_prior",
+      "display_label": "Paid Lift Prior",
+      "scalar_value": 71.8,
+      "confidence": 0.8,
+      "status": "available",
+      "explanation": "Directional paid-media lift prior from shared taxonomy rollups.",
+      "source_metrics": ["paid_lift_prior"]
+    },
+    "brand_memory_prior": {
+      "metric_key": "brand_memory_prior",
+      "display_label": "Brand Memory Prior",
+      "scalar_value": 68.2,
+      "confidence": 0.77,
+      "status": "available",
+      "explanation": "Directional memory encoding prior from boundary, narrative, and relevance signals.",
+      "source_metrics": ["brand_memory_prior"]
+    },
+    "cta_reception_score": {
+      "metric_key": "cta_reception_score",
+      "display_label": "CTA Reception Score",
+      "scalar_value": 63.5,
+      "confidence": 0.73,
+      "status": "available",
+      "explanation": "CTA landing quality estimate tied to synchrony, narrative coherence, and timing support.",
+      "source_metrics": ["cta_reception_score"]
+    },
+    "synthetic_lift_prior": {
+      "metric_key": "synthetic_lift_prior",
+      "display_label": "Synthetic Lift Prior",
+      "scalar_value": 69.4,
+      "confidence": 0.75,
+      "status": "available",
+      "explanation": "Fast model prior for expected lift; distinct from measured incrementality.",
+      "source_metrics": ["synthetic_lift_prior"]
+    },
+    "synthetic_vs_measured_lift": {
+      "synthetic_lift_prior": {
+        "metric_key": "synthetic_lift_prior",
+        "display_label": "Synthetic Lift Prior",
+        "scalar_value": 69.4,
+        "confidence": 0.75,
+        "status": "available",
+        "explanation": "Fast model prior for expected lift; distinct from measured incrementality.",
+        "source_metrics": ["synthetic_lift_prior"]
+      },
+      "predicted_incremental_lift_pct": 9.6,
+      "predicted_iroas": 1.84,
+      "predicted_incremental_lift_ci_low": 5.2,
+      "predicted_incremental_lift_ci_high": 13.1,
+      "measured_lift_status": "unavailable",
+      "measured_incremental_lift_pct": null,
+      "measured_iroas": null,
+      "calibration_status": "provisional",
+      "note": "Measured GeoX/holdout lift is unavailable for this asset; use synthetic prior as directional."
+    },
+    "decision_support": {
+      "media_team_summary": "Media plan can prioritize this asset using paid lift prior bands; keep GeoX/holdout as final truth layer.",
+      "creative_team_summary": "Creative sequencing likely needs refinement around memory encoding or CTA timing windows."
+    }
+  }
+}

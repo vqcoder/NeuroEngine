@@ -1,0 +1,416 @@
+{
+  "study": {
+    "name": "Readout Dashboard Regression Fixture",
+    "description": "4-scene regression fixture for end-to-end readout dashboard coverage"
+  },
+  "video": {
+    "title": "Regression Stimulus",
+    "source_url": "https://cdn.example.com/readout-regression.mp4",
+    "duration_ms": 12000,
+    "metadata": {
+      "variant_id": "variant-regression"
+    },
+    "scene_boundaries": [
+      {
+        "start_ms": 0,
+        "end_ms": 3000,
+        "label": "hook",
+        "scene_id": "scene-1",
+        "cut_id": "cut-1"
+      },
+      {
+        "start_ms": 3000,
+        "end_ms": 6000,
+        "label": "build",
+        "scene_id": "scene-2",
+        "cut_id": "cut-2",
+        "cta_id": "cta-main",
+        "cta_ms": 4500
+      },
+      {
+        "start_ms": 6000,
+        "end_ms": 9000,
+        "label": "friction",
+        "scene_id": "scene-3",
+        "cut_id": "cut-3"
+      },
+      {
+        "start_ms": 9000,
+        "end_ms": 12000,
+        "label": "recovery",
+        "scene_id": "scene-4",
+        "cut_id": "cut-4"
+      }
+    ]
+  },
+  "participants": [
+    {
+      "external_id": "regression-p-1"
+    },
+    {
+      "external_id": "regression-p-2"
+    }
+  ],
+  "session_rows": [
+    [
+      {
+        "t_ms": 0,
+        "face_ok": true,
+        "brightness": 34.0,
+        "landmarks_ok": true,
+        "blink": 0,
+        "blink_inhibition_score": 0.32,
+        "dopamine": 60.0,
+        "quality_confidence": 0.84,
+        "quality_score": 0.8,
+        "au": {"AU04": 0.02, "AU06": 0.1, "AU12": 0.34, "AU45": 0.0, "AU25": 0.03, "AU26": 0.04},
+        "au_norm": {"AU04": 0.02, "AU06": 0.1, "AU12": 0.34, "AU45": 0.0, "AU25": 0.03, "AU26": 0.04},
+        "head_pose": {"yaw": 0.02, "pitch": 0.0, "roll": 0.0}
+      },
+      {
+        "t_ms": 1000,
+        "face_ok": true,
+        "brightness": 36.0,
+        "landmarks_ok": true,
+        "blink": 0,
+        "blink_inhibition_score": 0.35,
+        "reward_proxy": 68.0,
+        "quality_confidence": 0.86,
+        "quality_score": 0.82,
+        "au": {"AU04": 0.02, "AU06": 0.11, "AU12": 0.38, "AU45": 0.0, "AU25": 0.03, "AU26": 0.04},
+        "au_norm": {"AU04": 0.02, "AU06": 0.11, "AU12": 0.38, "AU45": 0.0, "AU25": 0.03, "AU26": 0.04},
+        "head_pose": {"yaw": 0.02, "pitch": 0.0, "roll": 0.0}
+      },
+      {
+        "t_ms": 2000,
+        "face_ok": true,
+        "brightness": 38.0,
+        "landmarks_ok": true,
+        "blink": 0,
+        "blink_inhibition_score": 0.38,
+        "reward_proxy": 72.0,
+        "quality_confidence": 0.88,
+        "quality_score": 0.84,
+        "au": {"AU04": 0.03, "AU06": 0.12, "AU12": 0.4, "AU45": 0.0, "AU25": 0.04, "AU26": 0.05},
+        "au_norm": {"AU04": 0.03, "AU06": 0.12, "AU12": 0.4, "AU45": 0.0, "AU25": 0.04, "AU26": 0.05},
+        "head_pose": {"yaw": 0.03, "pitch": 0.01, "roll": 0.0}
+      },
+      {
+        "t_ms": 3000,
+        "face_ok": true,
+        "brightness": 44.0,
+        "landmarks_ok": true,
+        "blink": 0,
+        "blink_inhibition_score": 0.3,
+        "reward_proxy": 62.0,
+        "quality_confidence": 0.78,
+        "quality_score": 0.74,
+        "au": {"AU04": 0.04, "AU06": 0.09, "AU12": 0.28, "AU45": 0.0, "AU25": 0.05, "AU26": 0.06},
+        "au_norm": {"AU04": 0.04, "AU06": 0.09, "AU12": 0.28, "AU45": 0.0, "AU25": 0.05, "AU26": 0.06},
+        "head_pose": {"yaw": 0.04, "pitch": 0.01, "roll": 0.0}
+      },
+      {
+        "t_ms": 4000,
+        "face_ok": true,
+        "brightness": 48.0,
+        "landmarks_ok": true,
+        "blink": 0,
+        "blink_inhibition_score": 0.33,
+        "reward_proxy": 66.0,
+        "quality_confidence": 0.8,
+        "quality_score": 0.76,
+        "au": {"AU04": 0.04, "AU06": 0.1, "AU12": 0.3, "AU45": 0.0, "AU25": 0.05, "AU26": 0.06},
+        "au_norm": {"AU04": 0.04, "AU06": 0.1, "AU12": 0.3, "AU45": 0.0, "AU25": 0.05, "AU26": 0.06},
+        "head_pose": {"yaw": 0.03, "pitch": 0.01, "roll": 0.0}
+      },
+      {
+        "t_ms": 5000,
+        "face_ok": true,
+        "brightness": 46.0,
+        "landmarks_ok": true,
+        "blink": 0,
+        "blink_inhibition_score": 0.28,
+        "reward_proxy": 58.0,
+        "quality_confidence": 0.76,
+        "quality_score": 0.72,
+        "au": {"AU04": 0.05, "AU06": 0.09, "AU12": 0.24, "AU45": 0.0, "AU25": 0.05, "AU26": 0.06},
+        "au_norm": {"AU04": 0.05, "AU06": 0.09, "AU12": 0.24, "AU45": 0.0, "AU25": 0.05, "AU26": 0.06},
+        "head_pose": {"yaw": 0.05, "pitch": 0.02, "roll": 0.0}
+      },
+      {
+        "t_ms": 6000,
+        "face_ok": true,
+        "brightness": 24.0,
+        "landmarks_ok": true,
+        "blink": 1,
+        "blink_inhibition_score": -0.22,
+        "reward_proxy": 36.0,
+        "quality_confidence": 0.38,
+        "quality_score": 0.35,
+        "au": {"AU04": 0.17, "AU06": 0.04, "AU12": 0.1, "AU45": 1.0, "AU25": 0.06, "AU26": 0.05},
+        "au_norm": {"AU04": 0.17, "AU06": 0.04, "AU12": 0.1, "AU45": 1.0, "AU25": 0.06, "AU26": 0.05},
+        "head_pose": {"yaw": 0.11, "pitch": 0.03, "roll": 0.01}
+      },
+      {
+        "t_ms": 7000,
+        "face_ok": true,
+        "brightness": 22.0,
+        "landmarks_ok": true,
+        "blink": 1,
+        "blink_inhibition_score": -0.3,
+        "reward_proxy": 30.0,
+        "quality_confidence": 0.32,
+        "quality_score": 0.3,
+        "au": {"AU04": 0.21, "AU06": 0.03, "AU12": 0.07, "AU45": 1.0, "AU25": 0.06, "AU26": 0.05},
+        "au_norm": {"AU04": 0.21, "AU06": 0.03, "AU12": 0.07, "AU45": 1.0, "AU25": 0.06, "AU26": 0.05},
+        "head_pose": {"yaw": 0.13, "pitch": 0.04, "roll": 0.01}
+      },
+      {
+        "t_ms": 8000,
+        "face_ok": true,
+        "brightness": 25.0,
+        "landmarks_ok": true,
+        "blink": 1,
+        "blink_inhibition_score": -0.24,
+        "reward_proxy": 34.0,
+        "quality_confidence": 0.4,
+        "quality_score": 0.36,
+        "au": {"AU04": 0.18, "AU06": 0.04, "AU12": 0.08, "AU45": 1.0, "AU25": 0.06, "AU26": 0.05},
+        "au_norm": {"AU04": 0.18, "AU06": 0.04, "AU12": 0.08, "AU45": 1.0, "AU25": 0.06, "AU26": 0.05},
+        "head_pose": {"yaw": 0.12, "pitch": 0.04, "roll": 0.01}
+      },
+      {
+        "t_ms": 9000,
+        "face_ok": true,
+        "brightness": 42.0,
+        "landmarks_ok": true,
+        "blink": 0,
+        "blink_inhibition_score": 0.26,
+        "reward_proxy": 78.0,
+        "quality_confidence": 0.8,
+        "quality_score": 0.78,
+        "au": {"AU04": 0.04, "AU06": 0.11, "AU12": 0.33, "AU45": 0.0, "AU25": 0.05, "AU26": 0.06},
+        "au_norm": {"AU04": 0.04, "AU06": 0.11, "AU12": 0.33, "AU45": 0.0, "AU25": 0.05, "AU26": 0.06},
+        "head_pose": {"yaw": 0.04, "pitch": 0.02, "roll": 0.0}
+      },
+      {
+        "t_ms": 10000,
+        "face_ok": true,
+        "brightness": 46.0,
+        "landmarks_ok": true,
+        "blink": 0,
+        "blink_inhibition_score": 0.3,
+        "reward_proxy": 86.0,
+        "quality_confidence": 0.86,
+        "quality_score": 0.82,
+        "au": {"AU04": 0.03, "AU06": 0.13, "AU12": 0.4, "AU45": 0.0, "AU25": 0.04, "AU26": 0.05},
+        "au_norm": {"AU04": 0.03, "AU06": 0.13, "AU12": 0.4, "AU45": 0.0, "AU25": 0.04, "AU26": 0.05},
+        "head_pose": {"yaw": 0.03, "pitch": 0.01, "roll": 0.0}
+      },
+      {
+        "t_ms": 11000,
+        "face_ok": true,
+        "brightness": 48.0,
+        "landmarks_ok": true,
+        "blink": 0,
+        "blink_inhibition_score": 0.33,
+        "reward_proxy": 91.0,
+        "quality_confidence": 0.88,
+        "quality_score": 0.84,
+        "au": {"AU04": 0.03, "AU06": 0.14, "AU12": 0.43, "AU45": 0.0, "AU25": 0.04, "AU26": 0.05},
+        "au_norm": {"AU04": 0.03, "AU06": 0.14, "AU12": 0.43, "AU45": 0.0, "AU25": 0.04, "AU26": 0.05},
+        "head_pose": {"yaw": 0.02, "pitch": 0.01, "roll": 0.0}
+      }
+    ],
+    [
+      {
+        "t_ms": 0,
+        "face_ok": true,
+        "brightness": 33.0,
+        "landmarks_ok": true,
+        "blink": 0,
+        "blink_inhibition_score": 0.3,
+        "reward_proxy": 58.0,
+        "quality_confidence": 0.82,
+        "quality_score": 0.78,
+        "au": {"AU04": 0.02, "AU06": 0.09, "AU12": 0.32, "AU45": 0.0, "AU25": 0.03, "AU26": 0.04},
+        "au_norm": {"AU04": 0.02, "AU06": 0.09, "AU12": 0.32, "AU45": 0.0, "AU25": 0.03, "AU26": 0.04},
+        "head_pose": {"yaw": 0.02, "pitch": 0.0, "roll": 0.0}
+      },
+      {
+        "t_ms": 1000,
+        "face_ok": true,
+        "brightness": 35.0,
+        "landmarks_ok": true,
+        "blink": 0,
+        "blink_inhibition_score": 0.33,
+        "reward_proxy": 66.0,
+        "quality_confidence": 0.84,
+        "quality_score": 0.8,
+        "au": {"AU04": 0.02, "AU06": 0.1, "AU12": 0.36, "AU45": 0.0, "AU25": 0.03, "AU26": 0.04},
+        "au_norm": {"AU04": 0.02, "AU06": 0.1, "AU12": 0.36, "AU45": 0.0, "AU25": 0.03, "AU26": 0.04},
+        "head_pose": {"yaw": 0.02, "pitch": 0.0, "roll": 0.0}
+      },
+      {
+        "t_ms": 2000,
+        "face_ok": true,
+        "brightness": 37.0,
+        "landmarks_ok": true,
+        "blink": 0,
+        "blink_inhibition_score": 0.35,
+        "reward_proxy": 70.0,
+        "quality_confidence": 0.86,
+        "quality_score": 0.82,
+        "au": {"AU04": 0.03, "AU06": 0.11, "AU12": 0.39, "AU45": 0.0, "AU25": 0.04, "AU26": 0.05},
+        "au_norm": {"AU04": 0.03, "AU06": 0.11, "AU12": 0.39, "AU45": 0.0, "AU25": 0.04, "AU26": 0.05},
+        "head_pose": {"yaw": 0.03, "pitch": 0.01, "roll": 0.0}
+      },
+      {
+        "t_ms": 3000,
+        "face_ok": true,
+        "brightness": 43.0,
+        "landmarks_ok": true,
+        "blink": 0,
+        "blink_inhibition_score": 0.28,
+        "reward_proxy": 60.0,
+        "quality_confidence": 0.76,
+        "quality_score": 0.72,
+        "au": {"AU04": 0.04, "AU06": 0.08, "AU12": 0.27, "AU45": 0.0, "AU25": 0.05, "AU26": 0.06},
+        "au_norm": {"AU04": 0.04, "AU06": 0.08, "AU12": 0.27, "AU45": 0.0, "AU25": 0.05, "AU26": 0.06},
+        "head_pose": {"yaw": 0.04, "pitch": 0.02, "roll": 0.0}
+      },
+      {
+        "t_ms": 4000,
+        "face_ok": true,
+        "brightness": 47.0,
+        "landmarks_ok": true,
+        "blink": 0,
+        "blink_inhibition_score": 0.31,
+        "reward_proxy": 64.0,
+        "quality_confidence": 0.78,
+        "quality_score": 0.74,
+        "au": {"AU04": 0.04, "AU06": 0.09, "AU12": 0.29, "AU45": 0.0, "AU25": 0.05, "AU26": 0.06},
+        "au_norm": {"AU04": 0.04, "AU06": 0.09, "AU12": 0.29, "AU45": 0.0, "AU25": 0.05, "AU26": 0.06},
+        "head_pose": {"yaw": 0.03, "pitch": 0.01, "roll": 0.0}
+      },
+      {
+        "t_ms": 5000,
+        "face_ok": true,
+        "brightness": 45.0,
+        "landmarks_ok": true,
+        "blink": 0,
+        "blink_inhibition_score": 0.26,
+        "reward_proxy": 56.0,
+        "quality_confidence": 0.74,
+        "quality_score": 0.7,
+        "au": {"AU04": 0.05, "AU06": 0.08, "AU12": 0.23, "AU45": 0.0, "AU25": 0.05, "AU26": 0.06},
+        "au_norm": {"AU04": 0.05, "AU06": 0.08, "AU12": 0.23, "AU45": 0.0, "AU25": 0.05, "AU26": 0.06},
+        "head_pose": {"yaw": 0.05, "pitch": 0.02, "roll": 0.0}
+      },
+      {
+        "t_ms": 6000,
+        "face_ok": true,
+        "brightness": 23.0,
+        "landmarks_ok": true,
+        "blink": 1,
+        "blink_inhibition_score": -0.2,
+        "reward_proxy": 38.0,
+        "quality_confidence": 0.4,
+        "quality_score": 0.37,
+        "au": {"AU04": 0.16, "AU06": 0.05, "AU12": 0.11, "AU45": 1.0, "AU25": 0.06, "AU26": 0.05},
+        "au_norm": {"AU04": 0.16, "AU06": 0.05, "AU12": 0.11, "AU45": 1.0, "AU25": 0.06, "AU26": 0.05},
+        "head_pose": {"yaw": 0.1, "pitch": 0.03, "roll": 0.01}
+      },
+      {
+        "t_ms": 7000,
+        "face_ok": true,
+        "brightness": 21.0,
+        "landmarks_ok": true,
+        "blink": 1,
+        "blink_inhibition_score": -0.28,
+        "reward_proxy": 32.0,
+        "quality_confidence": 0.34,
+        "quality_score": 0.31,
+        "au": {"AU04": 0.2, "AU06": 0.04, "AU12": 0.08, "AU45": 1.0, "AU25": 0.06, "AU26": 0.05},
+        "au_norm": {"AU04": 0.2, "AU06": 0.04, "AU12": 0.08, "AU45": 1.0, "AU25": 0.06, "AU26": 0.05},
+        "head_pose": {"yaw": 0.12, "pitch": 0.04, "roll": 0.01}
+      },
+      {
+        "t_ms": 8000,
+        "face_ok": true,
+        "brightness": 24.0,
+        "landmarks_ok": true,
+        "blink": 1,
+        "blink_inhibition_score": -0.22,
+        "reward_proxy": 35.0,
+        "quality_confidence": 0.42,
+        "quality_score": 0.38,
+        "au": {"AU04": 0.17, "AU06": 0.05, "AU12": 0.09, "AU45": 1.0, "AU25": 0.06, "AU26": 0.05},
+        "au_norm": {"AU04": 0.17, "AU06": 0.05, "AU12": 0.09, "AU45": 1.0, "AU25": 0.06, "AU26": 0.05},
+        "head_pose": {"yaw": 0.11, "pitch": 0.03, "roll": 0.01}
+      },
+      {
+        "t_ms": 9000,
+        "face_ok": true,
+        "brightness": 41.0,
+        "landmarks_ok": true,
+        "blink": 0,
+        "blink_inhibition_score": 0.24,
+        "reward_proxy": 76.0,
+        "quality_confidence": 0.78,
+        "quality_score": 0.75,
+        "au": {"AU04": 0.04, "AU06": 0.1, "AU12": 0.32, "AU45": 0.0, "AU25": 0.05, "AU26": 0.06},
+        "au_norm": {"AU04": 0.04, "AU06": 0.1, "AU12": 0.32, "AU45": 0.0, "AU25": 0.05, "AU26": 0.06},
+        "head_pose": {"yaw": 0.04, "pitch": 0.02, "roll": 0.0}
+      },
+      {
+        "t_ms": 10000,
+        "face_ok": true,
+        "brightness": 45.0,
+        "landmarks_ok": true,
+        "blink": 0,
+        "blink_inhibition_score": 0.29,
+        "reward_proxy": 84.0,
+        "quality_confidence": 0.84,
+        "quality_score": 0.8,
+        "au": {"AU04": 0.03, "AU06": 0.12, "AU12": 0.38, "AU45": 0.0, "AU25": 0.04, "AU26": 0.05},
+        "au_norm": {"AU04": 0.03, "AU06": 0.12, "AU12": 0.38, "AU45": 0.0, "AU25": 0.04, "AU26": 0.05},
+        "head_pose": {"yaw": 0.03, "pitch": 0.01, "roll": 0.0}
+      },
+      {
+        "t_ms": 11000,
+        "face_ok": true,
+        "brightness": 47.0,
+        "landmarks_ok": true,
+        "blink": 0,
+        "blink_inhibition_score": 0.31,
+        "reward_proxy": 88.0,
+        "quality_confidence": 0.86,
+        "quality_score": 0.82,
+        "au": {"AU04": 0.03, "AU06": 0.13, "AU12": 0.41, "AU45": 0.0, "AU25": 0.04, "AU26": 0.05},
+        "au_norm": {"AU04": 0.03, "AU06": 0.13, "AU12": 0.41, "AU45": 0.0, "AU25": 0.04, "AU26": 0.05},
+        "head_pose": {"yaw": 0.02, "pitch": 0.01, "roll": 0.0}
+      }
+    ]
+  ],
+  "annotations": [
+    {
+      "marker_type": "engaging_moment",
+      "video_time_ms": 1500,
+      "note": "Strong hook",
+      "created_at": "2026-03-06T10:00:01Z"
+    },
+    {
+      "marker_type": "confusing_moment",
+      "video_time_ms": 7000,
+      "note": "Confusion during friction scene",
+      "created_at": "2026-03-06T10:00:03Z"
+    },
+    {
+      "marker_type": "cta_landed_moment",
+      "video_time_ms": 4700,
+      "note": "CTA landed",
+      "created_at": "2026-03-06T10:00:05Z"
+    }
+  ]
+}

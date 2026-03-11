@@ -1,0 +1,52 @@
+{
+  "mode": "creator",
+  "workspace_tier": "creator",
+  "enabled_modes": ["creator"],
+  "mode_resolution_note": null,
+  "source_schema_version": "1.0.0",
+  "creator": {
+    "reception_score": {
+      "metric_key": "reception_score",
+      "display_label": "Reception Score",
+      "scalar_value": 67.4,
+      "confidence": 0.78,
+      "status": "available",
+      "explanation": "Blend of CTA reception, arrest, synchrony, and reward anticipation to summarize likely viewer reception.",
+      "source_metrics": [
+        "cta_reception_score",
+        "arrest_score",
+        "attentional_synchrony_index",
+        "reward_anticipation_index"
+      ]
+    },
+    "organic_reach_prior": {
+      "metric_key": "organic_reach_prior",
+      "display_label": "Organic Reach Prior",
+      "scalar_value": 64.1,
+      "confidence": 0.74,
+      "status": "available",
+      "explanation": "Directional prior for share and pass-along potential from the underlying score taxonomy.",
+      "source_metrics": ["organic_reach_prior"]
+    },
+    "explanations": [
+      "Reception Score is a presentation-layer blend over existing taxonomy scores.",
+      "Organic Reach Prior is sourced directly from taxonomy rollups, not a separate model.",
+      "Warnings highlight likely failure points for hook, synchrony, payoff timing, and CTA timing."
+    ],
+    "warnings": [
+      {
+        "warning_key": "weak_hook",
+        "severity": "high",
+        "message": "Opening hook underperformed. Tighten the first 1-3 seconds so viewers stabilize earlier.",
+        "source_metrics": ["arrest_score", "narrative_control_score"]
+      },
+      {
+        "warning_key": "poor_payoff_timing",
+        "severity": "medium",
+        "message": "Setup and payoff timing may be misaligned; resolution is likely too late or too weak.",
+        "source_metrics": ["reward_anticipation_index"]
+      }
+    ]
+  },
+  "enterprise": null
+}

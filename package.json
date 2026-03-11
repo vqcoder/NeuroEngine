@@ -1,0 +1,18 @@
+{
+  "name": "neurotrace",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:dashboard": "npm run dev --workspace=apps/dashboard",
+    "dev:watchlab": "npm run dev --workspace=apps/watchlab",
+    "build:dashboard": "npm run build --workspace=apps/dashboard",
+    "build:watchlab": "npm run build --workspace=apps/watchlab",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "sync-lockfiles": "bash scripts/sync-lockfiles.sh",
+    "postinstall": "bash scripts/sync-lockfiles.sh"
+  }
+}

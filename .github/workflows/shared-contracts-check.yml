@@ -1,0 +1,196 @@
+name: Shared Contracts Check
+
+on:
+  pull_request:
+    paths:
+      - "packages/common/**"
+      - "fixtures/neuro_score_taxonomy.sample.json"
+      - "fixtures/readout_aggregate_metrics.sample.json"
+      - ".github/workflows/shared-contracts-check.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "packages/common/**"
+      - "fixtures/neuro_score_taxonomy.sample.json"
+      - "fixtures/readout_aggregate_metrics.sample.json"
+      - ".github/workflows/shared-contracts-check.yml"
+
+jobs:
+  pydantic-contract:
+    name: pydantic-contract
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/biograph_api
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Validate shared Pydantic contract fixtures
+        env:
+          GITHUB_WORKSPACE: ${{ github.workspace }}
+        run: |
+          uv run python - <<'PY'
+          import importlib.util
+          import json
+          import os
+          from pathlib import Path
+
+          workspace = Path(os.environ["GITHUB_WORKSPACE"])
+          taxonomy_module_path = workspace / "packages" / "common" / "pydantic" / "neuro_score_taxonomy.py"
+          taxonomy_fixture_path = workspace / "fixtures" / "neuro_score_taxonomy.sample.json"
+          aggregate_module_path = workspace / "packages" / "common" / "pydantic" / "readout_aggregate_metrics.py"
+          aggregate_fixture_path = workspace / "fixtures" / "readout_aggregate_metrics.sample.json"
+
+          taxonomy_spec = importlib.util.spec_from_file_location(
+              "common_neuro_score_taxonomy",
+              taxonomy_module_path,
+          )
+          if taxonomy_spec is None or taxonomy_spec.loader is None:
+              raise RuntimeError("Unable to load shared Pydantic taxonomy module.")
+          taxonomy_module = importlib.util.module_from_spec(taxonomy_spec)
+          taxonomy_spec.loader.exec_module(taxonomy_module)
+
+          aggregate_spec = importlib.util.spec_from_file_location(
+              "common_readout_aggregate_metrics",
+              aggregate_module_path,
+          )
+          if aggregate_spec is None or aggregate_spec.loader is None:
+              raise RuntimeError("Unable to load shared Pydantic aggregate metrics module.")
+          aggregate_module = importlib.util.module_from_spec(aggregate_spec)
+          aggregate_spec.loader.exec_module(aggregate_module)
+
+          taxonomy_payload = json.loads(taxonomy_fixture_path.read_text(encoding="utf-8"))
+          taxonomy_parsed = taxonomy_module.NeuroScoreTaxonomy.model_validate(taxonomy_payload)
+          assert taxonomy_parsed.schema_version == "1.0.0"
+          assert taxonomy_parsed.scores.arrest_score.machine_name.value == "arrest_score"
+          assert taxonomy_parsed.rollups.organic_reach_prior.machine_name.value == "organic_reach_prior"
+
+          aggregate_payload = json.loads(aggregate_fixture_path.read_text(encoding="utf-8"))
+          aggregate_parsed = aggregate_module.ReadoutAggregateMetrics.model_validate(aggregate_payload)
+          assert aggregate_parsed.included_sessions == 5
+          assert aggregate_parsed.attentional_synchrony is not None
+          assert aggregate_parsed.narrative_control is not None
+          assert aggregate_parsed.narrative_control.pathway.value == "timeline_grammar"
+          assert aggregate_parsed.social_transmission is not None
+          assert aggregate_parsed.social_transmission.pathway.value in {
+              "annotation_augmented",
+              "timeline_signal_model",
+              "fallback_proxy",
+          }
+          assert aggregate_parsed.self_relevance is not None
+          assert aggregate_parsed.self_relevance.pathway.value in {
+              "contextual_personalization",
+              "survey_augmented",
+              "fallback_proxy",
+          }
+          PY
+
+  zod-contract:
+    name: zod-contract
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/dashboard
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dashboard dependencies
+        run: npm ci
+
+      - name: Validate shared Zod contract fixtures
+        env:
+          GITHUB_WORKSPACE: ${{ github.workspace }}
+        run: |
+          node --input-type=module - <<'NODE'
+          import fs from 'node:fs';
+          import ts from 'typescript';
+
+          const workspace = process.env.GITHUB_WORKSPACE;
+          if (!workspace) {
+            throw new Error('GITHUB_WORKSPACE is required');
+          }
+
+          const sourcePath = `${workspace}/packages/common/zod/neuroScoreTaxonomy.ts`;
+          const fixturePath = `${workspace}/fixtures/neuro_score_taxonomy.sample.json`;
+          const aggregateSourcePath = `${workspace}/packages/common/zod/readoutAggregateMetrics.ts`;
+          const aggregateFixturePath = `${workspace}/fixtures/readout_aggregate_metrics.sample.json`;
+          const source = fs.readFileSync(sourcePath, 'utf-8');
+          const aggregateSource = fs.readFileSync(aggregateSourcePath, 'utf-8');
+          const transpiled = ts.transpileModule(source, {
+            compilerOptions: {
+              module: ts.ModuleKind.ESNext,
+              target: ts.ScriptTarget.ES2020
+            }
+          }).outputText;
+          const aggregateTranspiled = ts.transpileModule(aggregateSource, {
+            compilerOptions: {
+              module: ts.ModuleKind.ESNext,
+              target: ts.ScriptTarget.ES2020
+            }
+          }).outputText;
+          const zodUrl = `file://${workspace}/apps/dashboard/node_modules/zod/index.js`;
+          const patched = transpiled
+            .replace("from 'zod'", `from '${zodUrl}'`)
+            .replace('from "zod"', `from '${zodUrl}'`);
+          const aggregatePatched = aggregateTranspiled
+            .replace("from 'zod'", `from '${zodUrl}'`)
+            .replace('from "zod"', `from '${zodUrl}'`);
+          const mod = await import(
+            `data:text/javascript;base64,${Buffer.from(patched).toString('base64')}`
+          );
+          const aggregateMod = await import(
+            `data:text/javascript;base64,${Buffer.from(aggregatePatched).toString('base64')}`
+          );
+
+          const payload = JSON.parse(fs.readFileSync(fixturePath, 'utf-8'));
+          const parsed = mod.neuroScoreTaxonomySchema.parse(payload);
+          if (parsed.schema_version !== '1.0.0') {
+            throw new Error('Unexpected taxonomy schema version');
+          }
+          if (parsed.scores.arrest_score.machine_name !== 'arrest_score') {
+            throw new Error('Missing arrest_score in taxonomy payload');
+          }
+          if (parsed.rollups.organic_reach_prior.machine_name !== 'organic_reach_prior') {
+            throw new Error('Missing organic_reach_prior rollup in taxonomy payload');
+          }
+
+          const aggregatePayload = JSON.parse(fs.readFileSync(aggregateFixturePath, 'utf-8'));
+          const aggregateParsed = aggregateMod.readoutAggregateMetricsSchema.parse(aggregatePayload);
+          if (aggregateParsed.included_sessions !== 5) {
+            throw new Error('Unexpected included_sessions in aggregate metrics fixture');
+          }
+          if (aggregateParsed.narrative_control?.pathway !== 'timeline_grammar') {
+            throw new Error('Missing narrative_control timeline_grammar pathway in aggregate metrics fixture');
+          }
+          if (!aggregateParsed.social_transmission) {
+            throw new Error('Missing social_transmission diagnostics in aggregate metrics fixture');
+          }
+          if (!['annotation_augmented', 'timeline_signal_model', 'fallback_proxy'].includes(aggregateParsed.social_transmission.pathway)) {
+            throw new Error('Unexpected social_transmission pathway in aggregate metrics fixture');
+          }
+          if (!aggregateParsed.self_relevance) {
+            throw new Error('Missing self_relevance diagnostics in aggregate metrics fixture');
+          }
+          if (!['contextual_personalization', 'survey_augmented', 'fallback_proxy'].includes(aggregateParsed.self_relevance.pathway)) {
+            throw new Error('Unexpected self_relevance pathway in aggregate metrics fixture');
+          }
+          NODE

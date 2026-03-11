@@ -1,0 +1,31 @@
+{
+  "face_lost_sequence": [
+    { "t_ms": 0, "blink": 0, "face_visible": true, "head_pose_valid": true },
+    { "t_ms": 1000, "blink": 0, "face_visible": true, "head_pose_valid": true },
+    { "t_ms": 2000, "blink": 0, "face_visible": true, "head_pose_valid": true },
+    { "t_ms": 3000, "blink": 0, "face_visible": true, "head_pose_valid": true },
+    { "t_ms": 4000, "blink": 0, "face_visible": true, "head_pose_valid": true },
+    { "t_ms": 5000, "blink": 0, "face_visible": false, "head_pose_valid": false },
+    { "t_ms": 6000, "blink": 0, "face_visible": false, "head_pose_valid": false },
+    { "t_ms": 7000, "blink": 0, "face_visible": false, "head_pose_valid": false },
+    { "t_ms": 8000, "blink": 0, "face_visible": false, "head_pose_valid": false },
+    { "t_ms": 9000, "blink": 0, "face_visible": false, "head_pose_valid": false }
+  ],
+  "blink_inhibition_sequence": [
+    { "t_ms": 0, "blink": 0, "face_visible": true, "head_pose_valid": true },
+    { "t_ms": 1000, "blink": 1, "face_visible": true, "head_pose_valid": true },
+    { "t_ms": 2000, "blink": 0, "face_visible": true, "head_pose_valid": true },
+    { "t_ms": 3000, "blink": 1, "face_visible": true, "head_pose_valid": true },
+    { "t_ms": 4000, "blink": 0, "face_visible": true, "head_pose_valid": true },
+    { "t_ms": 5000, "blink": 1, "face_visible": true, "head_pose_valid": true },
+    { "t_ms": 6000, "blink": 0, "face_visible": true, "head_pose_valid": true },
+    { "t_ms": 7000, "blink": 0, "face_visible": true, "head_pose_valid": true },
+    { "t_ms": 8000, "blink": 0, "face_visible": true, "head_pose_valid": true },
+    { "t_ms": 9000, "blink": 0, "face_visible": true, "head_pose_valid": true },
+    { "t_ms": 10000, "blink": 0, "face_visible": true, "head_pose_valid": true },
+    { "t_ms": 11000, "blink": 0, "face_visible": true, "head_pose_valid": true },
+    { "t_ms": 12000, "blink": 0, "face_visible": true, "head_pose_valid": true },
+    { "t_ms": 13000, "blink": 0, "face_visible": true, "head_pose_valid": true },
+    { "t_ms": 14000, "blink": 0, "face_visible": true, "head_pose_valid": true }
+  ]
+}

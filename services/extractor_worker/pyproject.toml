@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "biotrace_extractor"
+version = "0.1.0"
+description = "Session-level biometric trace extraction from frames + events."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "WatchLab" }]
+keywords = ["biometrics", "facemesh", "au", "blink", "opencv", "mediapipe"]
+dependencies = [
+  "opencv-python>=4.8.0",
+  "mediapipe>=0.10.0",
+  "numpy>=1.24.0"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0.0",
+  "ruff>=0.6.0"
+]
+
+[project.scripts]
+extract-session = "biotrace_extractor.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["biotrace_extractor*"]
+
+[tool.setuptools.package-data]
+biotrace_extractor = ["py.typed"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.pytest.ini_options]
+testpaths = ["biotrace_extractor_tests"]

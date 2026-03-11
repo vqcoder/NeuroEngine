@@ -1,0 +1,61 @@
+{
+  "studyId": "demo",
+  "videoId": "video-demo",
+  "participantId": "22222222-2222-2222-2222-222222222222",
+  "browserMetadata": {
+    "userAgent": "Mozilla/5.0",
+    "platform": "MacIntel",
+    "language": "en-US",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "timezone": "America/Los_Angeles",
+    "hardwareConcurrency": 8
+  },
+  "eventTimeline": [
+    {
+      "type": "play",
+      "sessionId": "33333333-3333-4333-8333-333333333333",
+      "videoId": "video-demo",
+      "wallTimeMs": 1000,
+      "clientMonotonicMs": 500,
+      "videoTimeMs": 0
+    }
+  ],
+  "dialSamples": [
+    {
+      "id": "44444444-4444-4444-8444-444444444444",
+      "wallTimeMs": 1200,
+      "videoTimeMs": 200,
+      "value": 55
+    }
+  ],
+  "annotations": [
+    {
+      "id": "55555555-5555-4555-8555-555555555555",
+      "sessionId": "33333333-3333-4333-8333-333333333333",
+      "videoId": "video-demo",
+      "markerType": "engaging_moment",
+      "videoTimeMs": 2100,
+      "note": "Strong emotional hook",
+      "createdAt": "2026-03-05T10:00:00.000Z"
+    }
+  ],
+  "annotationSkipped": false,
+  "surveyResponses": [
+    {
+      "questionKey": "overall_interest_likert",
+      "responseNumber": 4
+    }
+  ],
+  "frames": [],
+  "framePointers": [
+    {
+      "id": "66666666-6666-4666-8666-666666666666",
+      "timestampMs": 250,
+      "videoTimeMs": 0,
+      "pointer": "s3://bucket/frame-0001.jpg"
+    }
+  ]
+}

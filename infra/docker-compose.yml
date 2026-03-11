@@ -1,0 +1,83 @@
+# Full-stack local development. For API-only dev, run:
+#   docker compose up db biograph_api
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-biograph}
+      POSTGRES_USER: ${POSTGRES_USER:-biograph}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    # Use ports: ["5432:5432"] for local dev if direct DB access is needed
+    expose:
+      - "5432"
+    volumes:
+      - neurotrace_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  biograph_api:
+    build:
+      context: ../services/biograph_api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-biograph}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-biograph}
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+      MODEL_ARTIFACT_PATH: /workspace/ml/training/artifacts/baseline_xgb.joblib
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../services/biograph_api:/service
+      - ../ml/training:/workspace/ml/training
+    command: sh -c "uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+  watchlab:
+    build:
+      context: ../apps/watchlab
+    depends_on:
+      - biograph_api
+    environment:
+      NODE_ENV: development
+      DEFAULT_STUDY_VIDEO_URL: /sample.mp4
+      BIOGRAPH_API_BASE_URL: http://biograph_api:8000
+      DASHBOARD_BASE_URL: http://localhost:5173
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../apps/watchlab:/app
+      - /app/node_modules
+    command: npm run dev -- -H 0.0.0.0 -p 3000
+
+  dashboard:
+    image: node:20-alpine
+    working_dir: /app
+    depends_on:
+      - biograph_api
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      VITE_API_BASE_URL: http://localhost:8000
+    ports:
+      - "5173:5173"
+    volumes:
+      - ../apps/dashboard:/app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+
+  extractor_worker:
+    image: python:3.11-slim
+    working_dir: /worker
+    depends_on:
+      - biograph_api
+    volumes:
+      - ../services/extractor_worker:/worker
+    command: sh -c "adduser --disabled-password --gecos '' appuser && su -s /bin/sh appuser -c 'pip install --user -e . && tail -f /dev/null'"
+
+volumes:
+  neurotrace_pgdata:

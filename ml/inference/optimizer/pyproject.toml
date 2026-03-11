@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "optimizer"
+version = "0.1.0"
+description = "Heuristic video edit optimizer from trace summaries"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "WatchLab" }]
+keywords = ["video", "optimization", "engagement", "heuristics"]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0.0"
+]
+
+[project.scripts]
+optimize-edits = "optimizer.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["optimizer*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

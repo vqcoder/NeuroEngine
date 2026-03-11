@@ -1,0 +1,28 @@
+{
+  "video_id": "demo-video-001",
+  "scene_boundaries": [
+    { "start_ms": 0, "end_ms": 5000, "label": "Intro" },
+    { "start_ms": 5000, "end_ms": 10000, "label": "Setup" },
+    { "start_ms": 10000, "end_ms": 15000, "label": "Payoff" }
+  ],
+  "trace_buckets": [
+    { "bucket_start_ms": 0, "attention": 65, "blink_rate": 0.04, "mean_brightness": 70, "motion_magnitude": 0.20, "mean_au_norm": { "AU04": 0.01, "AU06": 0.04, "AU12": 0.07 } },
+    { "bucket_start_ms": 1000, "attention": 67, "blink_rate": 0.05, "mean_brightness": 71, "motion_magnitude": 0.23, "mean_au_norm": { "AU04": 0.01, "AU06": 0.04, "AU12": 0.08 } },
+    { "bucket_start_ms": 2000, "attention": 64, "blink_rate": 0.05, "mean_brightness": 70, "motion_magnitude": 0.21, "mean_au_norm": { "AU04": 0.01, "AU06": 0.03, "AU12": 0.07 } },
+    { "bucket_start_ms": 3000, "attention": 62, "blink_rate": 0.04, "mean_brightness": 69, "motion_magnitude": 0.20, "mean_au_norm": { "AU04": 0.01, "AU06": 0.03, "AU12": 0.06 } },
+    { "bucket_start_ms": 4000, "attention": 58, "blink_rate": 0.06, "mean_brightness": 67, "motion_magnitude": 0.22, "mean_au_norm": { "AU04": 0.02, "AU06": 0.03, "AU12": 0.05 } },
+
+    { "bucket_start_ms": 5000, "attention": 36, "blink_rate": 0.10, "mean_brightness": 60, "motion_magnitude": 0.20, "mean_au_norm": { "AU04": 0.05, "AU06": 0.02, "AU12": 0.02 } },
+    { "bucket_start_ms": 6000, "attention": 33, "blink_rate": 0.11, "mean_brightness": 58, "motion_magnitude": 0.19, "mean_au_norm": { "AU04": 0.06, "AU06": 0.01, "AU12": 0.02 } },
+    { "bucket_start_ms": 7000, "attention": 31, "blink_rate": 0.12, "mean_brightness": 57, "motion_magnitude": 0.20, "mean_au_norm": { "AU04": 0.06, "AU06": 0.01, "AU12": 0.01 } },
+    { "bucket_start_ms": 8000, "attention": 34, "blink_rate": 0.10, "mean_brightness": 58, "motion_magnitude": 0.22, "mean_au_norm": { "AU04": 0.05, "AU06": 0.02, "AU12": 0.02 } },
+    { "bucket_start_ms": 9000, "attention": 46, "blink_rate": 0.07, "mean_brightness": 63, "motion_magnitude": 0.24, "mean_au_norm": { "AU04": 0.03, "AU06": 0.03, "AU12": 0.04 } },
+
+    { "bucket_start_ms": 10000, "attention": 48, "blink_rate": 0.10, "mean_brightness": 64, "motion_magnitude": 0.26, "mean_au_norm": { "AU04": 0.04, "AU06": 0.02, "AU12": 0.05 } },
+    { "bucket_start_ms": 11000, "attention": 45, "blink_rate": 0.20, "mean_brightness": 62, "motion_magnitude": 0.24, "mean_au_norm": { "AU04": 0.12, "AU06": 0.01, "AU12": 0.04 } },
+    { "bucket_start_ms": 12000, "attention": 50, "blink_rate": 0.08, "mean_brightness": 66, "motion_magnitude": 2.00, "mean_au_norm": { "AU04": 0.02, "AU06": 0.03, "AU12": 0.06 } },
+
+    { "bucket_start_ms": 13000, "attention": 86, "blink_rate": 0.03, "mean_brightness": 72, "motion_magnitude": 0.25, "mean_au_norm": { "AU04": 0.00, "AU06": 0.07, "AU12": 0.25 } },
+    { "bucket_start_ms": 14000, "attention": 74, "blink_rate": 0.04, "mean_brightness": 71, "motion_magnitude": 0.23, "mean_au_norm": { "AU04": 0.00, "AU06": 0.06, "AU12": 0.18 } }
+  ]
+}

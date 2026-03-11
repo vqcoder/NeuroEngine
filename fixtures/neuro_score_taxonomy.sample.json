@@ -1,0 +1,383 @@
+{
+  "schema_version": "1.0.0",
+  "scores": {
+    "arrest_score": {
+      "machine_name": "arrest_score",
+      "display_label": "Arrest Score",
+      "scalar_value": 72.4,
+      "confidence": 0.81,
+      "status": "available",
+      "evidence_windows": [
+        {
+          "start_ms": 0,
+          "end_ms": 3000,
+          "reason": "Strong opening attention and reward proxy."
+        }
+      ],
+      "top_feature_contributions": [
+        {
+          "feature_name": "opening_attention_mean",
+          "contribution": 0.52,
+          "rationale": "Opening windows carried above-baseline attention."
+        }
+      ],
+      "model_version": "neuro_taxonomy_v1",
+      "provenance": "services.biograph_api.app.neuro_score_taxonomy:build_arrest_score",
+      "claim_safe_description": "Proxy for early stopping-power based on attention and reward traces."
+    },
+    "attentional_synchrony_index": {
+      "machine_name": "attentional_synchrony_index",
+      "display_label": "Attentional Synchrony Index",
+      "scalar_value": 66.0,
+      "confidence": 0.74,
+      "status": "available",
+      "evidence_windows": [
+        {
+          "start_ms": 3000,
+          "end_ms": 7000,
+          "reason": "Session-level attention traces moved in similar directions."
+        }
+      ],
+      "top_feature_contributions": [
+        {
+          "feature_name": "aggregate_attention_synchrony",
+          "contribution": 0.6,
+          "rationale": "Derived from aggregate readout synchrony."
+        }
+      ],
+      "model_version": "neuro_taxonomy_v1",
+      "provenance": "services.biograph_api.app.neuro_score_taxonomy:build_attentional_synchrony_index",
+      "claim_safe_description": "Proxy for cross-viewer temporal alignment in attention dynamics."
+    },
+    "narrative_control_score": {
+      "machine_name": "narrative_control_score",
+      "display_label": "Narrative Control Score",
+      "scalar_value": 63.2,
+      "confidence": 0.7,
+      "status": "available",
+      "evidence_windows": [
+        {
+          "start_ms": 4000,
+          "end_ms": 9000,
+          "reason": "Attention velocity remained stable across the middle section."
+        }
+      ],
+      "top_feature_contributions": [
+        {
+          "feature_name": "grip_control_score",
+          "contribution": 0.55,
+          "rationale": "Aggregate control signal from current readout metrics."
+        }
+      ],
+      "model_version": "neuro_taxonomy_v1",
+      "provenance": "services.biograph_api.app.neuro_score_taxonomy:build_narrative_control_score",
+      "claim_safe_description": "Proxy for how consistently the story maintains attention control."
+    },
+    "blink_transport_score": {
+      "machine_name": "blink_transport_score",
+      "display_label": "Blink Transport Score",
+      "scalar_value": 58.9,
+      "confidence": 0.69,
+      "status": "available",
+      "evidence_windows": [
+        {
+          "start_ms": 2000,
+          "end_ms": 6000,
+          "reason": "Sustained blink inhibition relative to baseline."
+        }
+      ],
+      "top_feature_contributions": [
+        {
+          "feature_name": "blink_inhibition_mean",
+          "contribution": 0.47,
+          "rationale": "Higher inhibition is treated as transport proxy."
+        }
+      ],
+      "model_version": "neuro_taxonomy_v1",
+      "provenance": "services.biograph_api.app.neuro_score_taxonomy:build_blink_transport_score",
+      "claim_safe_description": "Proxy for immersion inferred from blink-pattern modulation."
+    },
+    "boundary_encoding_score": {
+      "machine_name": "boundary_encoding_score",
+      "display_label": "Boundary Encoding Score",
+      "scalar_value": 61.5,
+      "confidence": 0.68,
+      "status": "available",
+      "evidence_windows": [
+        {
+          "start_ms": 5000,
+          "end_ms": 7000,
+          "reason": "Cut and scene-transition windows retained attention."
+        }
+      ],
+      "top_feature_contributions": [
+        {
+          "feature_name": "scene_change_retention",
+          "contribution": 0.51,
+          "rationale": "Derived from transition-linked attention behavior."
+        }
+      ],
+      "model_version": "neuro_taxonomy_v1",
+      "provenance": "services.biograph_api.app.neuro_score_taxonomy:build_boundary_encoding_score",
+      "claim_safe_description": "Proxy for how transitions preserve comprehension and momentum."
+    },
+    "reward_anticipation_index": {
+      "machine_name": "reward_anticipation_index",
+      "display_label": "Reward Anticipation Index",
+      "scalar_value": 69.8,
+      "confidence": 0.8,
+      "status": "available",
+      "evidence_windows": [
+        {
+          "start_ms": 2500,
+          "end_ms": 4500,
+          "reason": "Reward proxy peak around core message reveal."
+        }
+      ],
+      "top_feature_contributions": [
+        {
+          "feature_name": "reward_proxy_mean",
+          "contribution": 0.64,
+          "rationale": "Built on calibrated reward proxy trace."
+        }
+      ],
+      "model_version": "neuro_taxonomy_v1",
+      "provenance": "services.biograph_api.app.neuro_score_taxonomy:build_reward_anticipation_index",
+      "claim_safe_description": "Proxy for anticipated reward engagement; not a direct neurotransmitter readout."
+    },
+    "social_transmission_score": {
+      "machine_name": "social_transmission_score",
+      "display_label": "Social Transmission Score",
+      "scalar_value": 55.1,
+      "confidence": 0.62,
+      "status": "available",
+      "evidence_windows": [
+        {
+          "start_ms": 3000,
+          "end_ms": 8000,
+          "reason": "Marker density and synchrony imply shareability potential."
+        }
+      ],
+      "top_feature_contributions": [
+        {
+          "feature_name": "engaging_marker_density",
+          "contribution": 0.42,
+          "rationale": "Higher engaging marker density increased transmission proxy."
+        }
+      ],
+      "model_version": "neuro_taxonomy_v1",
+      "provenance": "services.biograph_api.app.neuro_score_taxonomy:build_social_transmission_score",
+      "claim_safe_description": "Proxy for potential social handoff based on behavioral/label patterns."
+    },
+    "self_relevance_score": {
+      "machine_name": "self_relevance_score",
+      "display_label": "Self-Relevance Score",
+      "scalar_value": 64.3,
+      "confidence": 0.72,
+      "status": "available",
+      "evidence_windows": [
+        {
+          "start_ms": 6000,
+          "end_ms": 9000,
+          "reason": "Survey responses indicate personal resonance."
+        }
+      ],
+      "top_feature_contributions": [
+        {
+          "feature_name": "survey_interest_mean",
+          "contribution": 0.58,
+          "rationale": "Driven by post-view survey means."
+        }
+      ],
+      "model_version": "neuro_taxonomy_v1",
+      "provenance": "services.biograph_api.app.neuro_score_taxonomy:build_self_relevance_score",
+      "claim_safe_description": "Proxy for personal resonance from explicit and implicit signals."
+    },
+    "cta_reception_score": {
+      "machine_name": "cta_reception_score",
+      "display_label": "CTA Reception Score",
+      "scalar_value": 62.7,
+      "confidence": 0.71,
+      "status": "available",
+      "evidence_windows": [
+        {
+          "start_ms": 7000,
+          "end_ms": 8500,
+          "reason": "CTA window sustained above-median reward and attention."
+        }
+      ],
+      "top_feature_contributions": [
+        {
+          "feature_name": "cta_receptivity_diagnostic",
+          "contribution": 0.57,
+          "rationale": "Derived from CTA diagnostic cards and marker context."
+        }
+      ],
+      "model_version": "neuro_taxonomy_v1",
+      "provenance": "services.biograph_api.app.neuro_score_taxonomy:build_cta_reception_score",
+      "claim_safe_description": "Proxy for CTA uptake quality around call-to-action windows."
+    },
+    "synthetic_lift_prior": {
+      "machine_name": "synthetic_lift_prior",
+      "display_label": "Synthetic Lift Prior",
+      "scalar_value": 59.0,
+      "confidence": 0.63,
+      "status": "available",
+      "evidence_windows": [
+        {
+          "start_ms": 3500,
+          "end_ms": 7500,
+          "reason": "Golden-scene strength exceeded dead-zone drag."
+        }
+      ],
+      "top_feature_contributions": [
+        {
+          "feature_name": "golden_minus_dead_zone_signal",
+          "contribution": 0.49,
+          "rationale": "Computed from readout segment balance."
+        }
+      ],
+      "model_version": "neuro_taxonomy_v1",
+      "provenance": "services.biograph_api.app.neuro_score_taxonomy:build_synthetic_lift_prior",
+      "claim_safe_description": "Synthetic prior for directional lift potential before external incrementality validation."
+    },
+    "au_friction_score": {
+      "machine_name": "au_friction_score",
+      "display_label": "AU Friction Score",
+      "scalar_value": 41.2,
+      "confidence": 0.66,
+      "status": "available",
+      "evidence_windows": [
+        {
+          "start_ms": 7800,
+          "end_ms": 9000,
+          "reason": "Confusion segment flagged with AU04 plus blink/velocity friction."
+        }
+      ],
+      "top_feature_contributions": [
+        {
+          "feature_name": "confusion_segment_magnitude",
+          "contribution": 0.46,
+          "rationale": "Diagnostic-only AU friction proxy."
+        }
+      ],
+      "model_version": "neuro_taxonomy_v1",
+      "provenance": "services.biograph_api.app.neuro_score_taxonomy:build_au_friction_score",
+      "claim_safe_description": "Diagnostic AU-level friction proxy, not a standalone truth label."
+    }
+  },
+  "rollups": {
+    "organic_reach_prior": {
+      "machine_name": "organic_reach_prior",
+      "display_label": "Organic Reach Prior",
+      "scalar_value": 63.6,
+      "confidence": 0.73,
+      "status": "available",
+      "component_scores": [
+        "arrest_score",
+        "narrative_control_score",
+        "self_relevance_score",
+        "social_transmission_score",
+        "cta_reception_score"
+      ],
+      "component_weights": {
+        "arrest_score": 0.25,
+        "narrative_control_score": 0.2,
+        "self_relevance_score": 0.2,
+        "social_transmission_score": 0.2,
+        "cta_reception_score": 0.15
+      },
+      "model_version": "neuro_taxonomy_v1",
+      "provenance": "services.biograph_api.app.neuro_score_taxonomy:build_organic_reach_prior",
+      "claim_safe_description": "Composite prior for organic spread potential."
+    },
+    "paid_lift_prior": {
+      "machine_name": "paid_lift_prior",
+      "display_label": "Paid Lift Prior",
+      "scalar_value": 62.4,
+      "confidence": 0.7,
+      "status": "available",
+      "component_scores": [
+        "synthetic_lift_prior",
+        "cta_reception_score",
+        "reward_anticipation_index",
+        "attentional_synchrony_index",
+        "arrest_score"
+      ],
+      "component_weights": {
+        "synthetic_lift_prior": 0.3,
+        "cta_reception_score": 0.25,
+        "reward_anticipation_index": 0.2,
+        "attentional_synchrony_index": 0.15,
+        "arrest_score": 0.1
+      },
+      "model_version": "neuro_taxonomy_v1",
+      "provenance": "services.biograph_api.app.neuro_score_taxonomy:build_paid_lift_prior",
+      "claim_safe_description": "Composite prior for paid media lift potential."
+    },
+    "brand_memory_prior": {
+      "machine_name": "brand_memory_prior",
+      "display_label": "Brand Memory Prior",
+      "scalar_value": 61.9,
+      "confidence": 0.71,
+      "status": "available",
+      "component_scores": [
+        "boundary_encoding_score",
+        "narrative_control_score",
+        "self_relevance_score",
+        "reward_anticipation_index",
+        "blink_transport_score"
+      ],
+      "component_weights": {
+        "boundary_encoding_score": 0.25,
+        "narrative_control_score": 0.25,
+        "self_relevance_score": 0.2,
+        "reward_anticipation_index": 0.15,
+        "blink_transport_score": 0.15
+      },
+      "model_version": "neuro_taxonomy_v1",
+      "provenance": "services.biograph_api.app.neuro_score_taxonomy:build_brand_memory_prior",
+      "claim_safe_description": "Composite prior for memory encoding and later recall potential."
+    }
+  },
+  "registry": [
+    {
+      "machine_name": "arrest_score",
+      "display_label": "Arrest Score",
+      "claim_safe_description": "Proxy for early stopping-power based on attention and reward traces.",
+      "builder_key": "services.biograph_api.app.neuro_score_taxonomy:build_arrest_score"
+    },
+    {
+      "machine_name": "attentional_synchrony_index",
+      "display_label": "Attentional Synchrony Index",
+      "claim_safe_description": "Proxy for cross-viewer temporal alignment in attention dynamics.",
+      "builder_key": "services.biograph_api.app.neuro_score_taxonomy:build_attentional_synchrony_index"
+    }
+  ],
+  "rollup_registry": [
+    {
+      "machine_name": "organic_reach_prior",
+      "display_label": "Organic Reach Prior",
+      "claim_safe_description": "Composite prior for organic spread potential.",
+      "builder_key": "services.biograph_api.app.neuro_score_taxonomy:build_organic_reach_prior"
+    }
+  ],
+  "legacy_score_adapters": [
+    {
+      "legacy_output": "attention",
+      "mapped_machine_name": "arrest_score",
+      "scalar_value": 72.4,
+      "confidence": 0.81,
+      "status": "available",
+      "notes": "Legacy attention dashboards can source arrest_score during migration."
+    },
+    {
+      "legacy_output": "emotion",
+      "mapped_machine_name": "reward_anticipation_index",
+      "scalar_value": 69.8,
+      "confidence": 0.8,
+      "status": "available",
+      "notes": "Legacy emotion dashboards can source reward_anticipation_index during migration."
+    }
+  ]
+}

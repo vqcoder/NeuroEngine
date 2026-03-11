@@ -1,0 +1,603 @@
+{
+  "attention_synchrony": 0.62,
+  "blink_synchrony": 0.44,
+  "grip_control_score": 0.53,
+  "attentional_synchrony": {
+    "pathway": "direct_panel_gaze",
+    "global_score": 78.4,
+    "confidence": 0.84,
+    "segment_scores": [
+      {
+        "start_ms": 0,
+        "end_ms": 3000,
+        "score": 74.2,
+        "confidence": 0.8,
+        "pathway": "direct_panel_gaze",
+        "reason": "Direct panel gaze overlap and aligned attention supported convergence."
+      },
+      {
+        "start_ms": 3000,
+        "end_ms": 6000,
+        "score": 81.7,
+        "confidence": 0.87,
+        "pathway": "direct_panel_gaze",
+        "reason": "Direct panel gaze overlap and aligned attention supported convergence."
+      }
+    ],
+    "peaks": [
+      {
+        "start_ms": 3000,
+        "end_ms": 6000,
+        "score": 81.7,
+        "reason": "Peak convergence window with strongest shared visual focus."
+      }
+    ],
+    "valleys": [
+      {
+        "start_ms": 0,
+        "end_ms": 3000,
+        "score": 74.2,
+        "reason": "Low-convergence window where viewer focus diverged."
+      }
+    ],
+    "evidence_summary": "Direct panel gaze overlap was available and used as the primary pathway.",
+    "signals_used": [
+      "panel_gaze_overlap",
+      "cross_user_attention_alignment",
+      "signal_quality_weighting"
+    ]
+  },
+  "narrative_control": {
+    "pathway": "timeline_grammar",
+    "global_score": 72.6,
+    "confidence": 0.78,
+    "scene_scores": [
+      {
+        "start_ms": 0,
+        "end_ms": 4000,
+        "score": 70.1,
+        "confidence": 0.75,
+        "scene_id": "scene-1",
+        "scene_label": "Setup",
+        "fragmentation_index": 0.22,
+        "boundary_density": 0.45,
+        "motion_continuity": 0.82,
+        "ordering_pattern": "context_before_face",
+        "summary": "Setup sequence preserved coherence and pacing."
+      },
+      {
+        "start_ms": 4000,
+        "end_ms": 8000,
+        "score": 75.9,
+        "confidence": 0.8,
+        "scene_id": "scene-2",
+        "scene_label": "Payoff",
+        "fragmentation_index": 0.17,
+        "boundary_density": 0.38,
+        "motion_continuity": 0.88,
+        "ordering_pattern": "balanced",
+        "summary": "Payoff sequence used coherent reveal timing."
+      }
+    ],
+    "disruption_penalties": [
+      {
+        "start_ms": 3500,
+        "end_ms": 4300,
+        "contribution": -3.5,
+        "category": "disruptive_transition",
+        "reason": "One transition created temporary disorientation.",
+        "scene_id": "scene-1",
+        "cut_id": "cut-2"
+      }
+    ],
+    "reveal_structure_bonuses": [
+      {
+        "start_ms": 5200,
+        "end_ms": 6600,
+        "contribution": 5.4,
+        "category": "coherent_reveal",
+        "reason": "Reveal timing aligned with attention recovery.",
+        "scene_id": "scene-2",
+        "cut_id": "cut-4"
+      }
+    ],
+    "top_contributing_moments": [
+      {
+        "start_ms": 5200,
+        "end_ms": 6600,
+        "contribution": 5.4,
+        "category": "coherent_reveal",
+        "reason": "Reveal timing aligned with attention recovery.",
+        "scene_id": "scene-2",
+        "cut_id": "cut-4"
+      },
+      {
+        "start_ms": 3500,
+        "end_ms": 4300,
+        "contribution": -3.5,
+        "category": "disruptive_transition",
+        "reason": "One transition created temporary disorientation.",
+        "scene_id": "scene-1",
+        "cut_id": "cut-2"
+      }
+    ],
+    "heuristic_checks": [
+      {
+        "heuristic_key": "hard_hook_first_1_to_3_seconds",
+        "passed": true,
+        "score_delta": 6.0,
+        "reason": "Opening hook threshold met.",
+        "start_ms": 0,
+        "end_ms": 3000
+      },
+      {
+        "heuristic_key": "cta_not_after_disorienting_transition",
+        "passed": true,
+        "score_delta": 4.0,
+        "reason": "CTA timing avoided immediate transition friction.",
+        "start_ms": 4800,
+        "end_ms": 6200
+      }
+    ],
+    "evidence_summary": "Narrative diagnostics indicate coherent reveal pacing with limited transition disruption.",
+    "signals_used": [
+      "attention_trace",
+      "scene_graph_cuts",
+      "cut_cadence",
+      "camera_motion_proxy"
+    ]
+  },
+  "blink_transport": {
+    "pathway": "fallback_proxy",
+    "global_score": 69.3,
+    "confidence": 0.64,
+    "segment_scores": [
+      {
+        "start_ms": 3000,
+        "end_ms": 4000,
+        "score": 74.5,
+        "confidence": 0.67,
+        "pathway": "fallback_proxy",
+        "reason": "Blink suppression held during a high-information window.",
+        "blink_suppression": 0.61,
+        "rebound_signal": 0.48,
+        "cta_avoidance_signal": 0.56
+      },
+      {
+        "start_ms": 5000,
+        "end_ms": 6000,
+        "score": 71.2,
+        "confidence": 0.63,
+        "pathway": "fallback_proxy",
+        "reason": "Blink avoidance held around CTA/reveal timing.",
+        "blink_suppression": 0.58,
+        "rebound_signal": 0.42,
+        "cta_avoidance_signal": 0.63
+      }
+    ],
+    "suppression_score": 0.6,
+    "rebound_score": 0.46,
+    "cta_avoidance_score": 0.59,
+    "cross_viewer_blink_synchrony": 0.41,
+    "engagement_warnings": [
+      {
+        "warning_key": "high_blink_variability",
+        "severity": "medium",
+        "message": "Blink suppression varied substantially across windows; transport estimates may be less stable.",
+        "start_ms": 0,
+        "end_ms": 12000,
+        "metric_value": 0.23
+      }
+    ],
+    "evidence_summary": "Direct panel blink overlap was limited, so fallback event-gating estimation was used.",
+    "signals_used": [
+      "blink_inhibition_timing",
+      "blink_rebound_at_event_boundaries",
+      "attention_high_information_windows",
+      "cta_and_reveal_windows"
+    ]
+  },
+  "reward_anticipation": {
+    "pathway": "timeline_dynamics",
+    "global_score": 72.1,
+    "confidence": 0.74,
+    "anticipation_ramps": [
+      {
+        "start_ms": 2000,
+        "end_ms": 5000,
+        "score": 70.4,
+        "confidence": 0.73,
+        "window_type": "anticipation_ramp",
+        "reason": "Pre-payoff ramp combined pacing and blink suppression cues.",
+        "ramp_slope": 3.2,
+        "tension_level": 0.61,
+        "release_level": 0.58
+      }
+    ],
+    "payoff_windows": [
+      {
+        "start_ms": 5000,
+        "end_ms": 6800,
+        "score": 74.8,
+        "confidence": 0.75,
+        "window_type": "payoff_window",
+        "reason": "Payoff release arrived on-time with strong pull.",
+        "reward_delta": 11.8,
+        "tension_level": 0.61,
+        "release_level": 0.66
+      }
+    ],
+    "warnings": [
+      {
+        "warning_key": "late_resolution",
+        "severity": "medium",
+        "message": "One payoff resolved later than preferred timing.",
+        "start_ms": 5000,
+        "end_ms": 7600,
+        "metric_value": 2400
+      }
+    ],
+    "anticipation_strength": 0.7,
+    "payoff_release_strength": 0.75,
+    "tension_release_balance": 0.88,
+    "evidence_summary": "Reward anticipation reflects pre-payoff pull into release moments from timing proxies.",
+    "signals_used": [
+      "reward_proxy_trend",
+      "pre_payoff_attention_concentration",
+      "blink_suppression_pre_payoff",
+      "arousal_slope_proxy",
+      "cut_cadence",
+      "audio_intensity_rms"
+    ]
+  },
+  "boundary_encoding": {
+    "pathway": "timeline_boundary_model",
+    "global_score": 70.8,
+    "confidence": 0.76,
+    "strong_windows": [
+      {
+        "start_ms": 5750,
+        "end_ms": 6350,
+        "score": 78.2,
+        "confidence": 0.77,
+        "window_type": "strong_encoding",
+        "reason": "Payload aligned close to an event boundary; novelty support was present.",
+        "payload_type": "text_overlay",
+        "nearest_boundary_ms": 6000,
+        "boundary_distance_ms": 50,
+        "novelty_signal": 0.72,
+        "reinforcement_signal": 1.0
+      }
+    ],
+    "weak_windows": [
+      {
+        "start_ms": 10800,
+        "end_ms": 11600,
+        "score": 41.3,
+        "confidence": 0.62,
+        "window_type": "weak_encoding",
+        "reason": "Payload was placed far from the nearest event boundary; novelty support was limited.",
+        "payload_type": "text_overlay",
+        "nearest_boundary_ms": 9000,
+        "boundary_distance_ms": 1900,
+        "novelty_signal": 0.43,
+        "reinforcement_signal": 0.0
+      }
+    ],
+    "flags": [
+      {
+        "flag_key": "poor_payload_timing",
+        "severity": "medium",
+        "message": "Important payload was introduced away from an event boundary, reducing chunked encoding support.",
+        "start_ms": 10800,
+        "end_ms": 11600,
+        "metric_value": 1900
+      }
+    ],
+    "boundary_alignment_score": 0.66,
+    "novelty_boundary_score": 0.69,
+    "reinforcement_score": 0.52,
+    "overload_risk_score": 0.18,
+    "payload_count": 4,
+    "boundary_count": 3,
+    "evidence_summary": "Boundary encoding emphasized event-boundary timing and memory-friendly reinforcement while flagging one late payload.",
+    "signals_used": [
+      "scene_graph_boundaries",
+      "timeline_shot_boundaries",
+      "cta_windows",
+      "text_overlay_payloads",
+      "novelty_proxy"
+    ]
+  },
+  "au_friction": {
+    "pathway": "au_signal_model",
+    "global_score": 52.7,
+    "confidence": 0.68,
+    "segment_scores": [
+      {
+        "start_ms": 3000,
+        "end_ms": 4000,
+        "score": 61.4,
+        "confidence": 0.71,
+        "reason": "Dominant AU pattern suggested confusion; secondary signal was strain. Pattern followed a scene/cut transition and aligned with a confusion spike.",
+        "dominant_state": "confusion",
+        "transition_context": "post_transition_spike",
+        "au04_signal": 0.44,
+        "au06_signal": 0.18,
+        "au12_signal": 0.12,
+        "au25_signal": 0.36,
+        "au26_signal": 0.28,
+        "au45_signal": 0.24,
+        "confusion_signal": 0.51,
+        "strain_signal": 0.4,
+        "amusement_signal": 0.08,
+        "tension_signal": 0.37,
+        "resistance_signal": 0.33
+      },
+      {
+        "start_ms": 5200,
+        "end_ms": 6200,
+        "score": 38.2,
+        "confidence": 0.67,
+        "reason": "Dominant AU pattern suggested amusement; secondary signal was tension.",
+        "dominant_state": "amusement",
+        "au04_signal": 0.12,
+        "au06_signal": 0.46,
+        "au12_signal": 0.51,
+        "au25_signal": 0.18,
+        "au26_signal": 0.13,
+        "au45_signal": 0.16,
+        "confusion_signal": 0.18,
+        "strain_signal": 0.16,
+        "amusement_signal": 0.46,
+        "tension_signal": 0.2,
+        "resistance_signal": 0.18
+      }
+    ],
+    "warnings": [
+      {
+        "warning_key": "high_lighting_variance",
+        "severity": "medium",
+        "message": "Lighting instability reduced consistency of AU-level friction interpretation.",
+        "metric_value": 17.8
+      },
+      {
+        "warning_key": "post_transition_confusion_spike",
+        "severity": "low",
+        "message": "AU confusion signal rose after one or more scene/cut transitions.",
+        "start_ms": 3000,
+        "end_ms": 4000,
+        "metric_value": 0.51
+      }
+    ],
+    "confusion_signal": 0.36,
+    "strain_signal": 0.3,
+    "amusement_signal": 0.27,
+    "tension_signal": 0.29,
+    "resistance_signal": 0.26,
+    "evidence_summary": "AU friction diagnostics interpret AU-level patterns as diagnostic indicators for confusion, strain, amusement, tension, or resistance. Results are quality-gated and should not be treated as a standalone truth engine. Quality warnings indicate where facial input reliability was reduced.",
+    "signals_used": [
+      "au04_trace",
+      "au06_trace",
+      "au12_trace",
+      "au25_trace",
+      "au26_trace",
+      "au45_trace",
+      "face_quality_gating",
+      "scene_transition_context"
+    ]
+  },
+  "cta_reception": {
+    "pathway": "multi_signal_model",
+    "global_score": 73.5,
+    "confidence": 0.77,
+    "cta_windows": [
+      {
+        "cta_id": "cta-main",
+        "cta_type": "sign_up",
+        "start_ms": 5000,
+        "end_ms": 6200,
+        "score": 78.6,
+        "confidence": 0.79,
+        "reason": "CTA aligns with payoff timing and boundary coherence while blink-through risk remains low.",
+        "synchrony_support": 0.75,
+        "narrative_support": 0.71,
+        "blink_receptivity_support": 0.72,
+        "reward_timing_support": 0.81,
+        "boundary_coherence_support": 0.69,
+        "timing_fit_support": 0.77,
+        "flag_keys": []
+      },
+      {
+        "cta_id": "cta-late",
+        "cta_type": "offer",
+        "start_ms": 9800,
+        "end_ms": 11000,
+        "score": 46.2,
+        "confidence": 0.68,
+        "reason": "Late CTA follows weaker attention retention and misses strongest payoff overlap.",
+        "synchrony_support": 0.44,
+        "narrative_support": 0.48,
+        "blink_receptivity_support": 0.34,
+        "reward_timing_support": 0.39,
+        "boundary_coherence_support": 0.41,
+        "timing_fit_support": 0.33,
+        "flag_keys": [
+          "cta_too_late",
+          "cta_missed_reward_window",
+          "cta_blinked_through"
+        ]
+      }
+    ],
+    "flags": [
+      {
+        "flag_key": "cta_too_late",
+        "severity": "high",
+        "message": "CTA arrives after attention has weakened or too close to the end of the video.",
+        "start_ms": 9800,
+        "end_ms": 11000,
+        "cta_id": "cta-late",
+        "cta_type": "offer",
+        "metric_value": 14.2
+      },
+      {
+        "flag_key": "cta_missed_reward_window",
+        "severity": "medium",
+        "message": "CTA is weakly aligned with anticipation or payoff windows.",
+        "start_ms": 9800,
+        "end_ms": 11000,
+        "cta_id": "cta-late",
+        "cta_type": "offer",
+        "metric_value": 0.39
+      }
+    ],
+    "synchrony_support": 0.6,
+    "narrative_support": 0.59,
+    "blink_receptivity_support": 0.53,
+    "reward_timing_support": 0.6,
+    "boundary_coherence_support": 0.55,
+    "overload_risk_support": 0.77,
+    "evidence_summary": "CTA reception combines synchrony, narrative coherence, blink receptivity, reward timing, and boundary alignment to estimate whether CTA moments land while viewers remain ready to act.",
+    "signals_used": [
+      "attentional_synchrony_index",
+      "narrative_control_score",
+      "blink_transport_score",
+      "reward_anticipation_index",
+      "boundary_encoding_score",
+      "cta_marker_timeline_alignment"
+    ]
+  },
+  "social_transmission": {
+    "pathway": "annotation_augmented",
+    "global_score": 74.3,
+    "confidence": 0.77,
+    "segment_scores": [
+      {
+        "start_ms": 3000,
+        "end_ms": 4000,
+        "score": 79.2,
+        "confidence": 0.79,
+        "reason": "Window showed stronger quote-worthiness support for social handoff potential.",
+        "novelty_signal": 0.74,
+        "emotional_activation_signal": 0.71,
+        "quote_worthiness_signal": 0.76
+      }
+    ],
+    "novelty_signal": 0.72,
+    "identity_signal": 0.5,
+    "usefulness_signal": 0.64,
+    "quote_worthiness_signal": 0.7,
+    "emotional_activation_signal": 0.68,
+    "memorability_signal": 0.66,
+    "evidence_summary": "Social transmission combines novelty, identity-safe signaling cues, usefulness language, quote/comment worthiness, emotional activation, and memorability proxies.",
+    "signals_used": [
+      "novelty_proxy",
+      "quote_comment_worthiness_language",
+      "annotation_marker_support"
+    ]
+  },
+  "self_relevance": {
+    "pathway": "contextual_personalization",
+    "global_score": 76.1,
+    "confidence": 0.79,
+    "segment_scores": [
+      {
+        "start_ms": 1000,
+        "end_ms": 2000,
+        "score": 78.4,
+        "confidence": 0.78,
+        "reason": "Window emphasized direct address as the strongest self-relevance driver.",
+        "direct_address_signal": 0.71,
+        "personalization_hook_signal": 0.66
+      }
+    ],
+    "warnings": [
+      {
+        "warning_key": "audience_metadata_missing",
+        "severity": "low",
+        "message": "Audience-match signal was limited because no explicit audience metadata was provided."
+      }
+    ],
+    "direct_address_signal": 0.69,
+    "audience_match_signal": 0.58,
+    "niche_specificity_signal": 0.57,
+    "personalization_hook_signal": 0.63,
+    "resonance_signal": 0.74,
+    "context_coverage": 0.82,
+    "evidence_summary": "Self relevance combines direct-address cues, optional audience metadata overlap, niche specificity, personalization hooks, and survey-supported resonance when available.",
+    "signals_used": [
+      "direct_address_cues",
+      "audience_metadata_token_overlap",
+      "survey_resonance_signal"
+    ]
+  },
+  "ci_method": "sem_95",
+  "included_sessions": 5,
+  "downweighted_sessions": 1,
+  "synthetic_lift_prior": {
+    "pathway": "taxonomy_regression",
+    "global_score": 69.8,
+    "confidence": 0.74,
+    "predicted_incremental_lift_pct": 8.6,
+    "predicted_iroas": 2.24,
+    "incremental_lift_ci_low": 1.9,
+    "incremental_lift_ci_high": 15.3,
+    "iroas_ci_low": 1.22,
+    "iroas_ci_high": 3.26,
+    "uncertainty_band": 6.7,
+    "calibration_status": "provisional",
+    "calibration_observation_count": 3,
+    "calibration_last_updated_at": "2026-03-08T00:00:00+00:00",
+    "model_version": "synthetic_lift_prior_v1",
+    "segment_scores": [
+      {
+        "start_ms": 5000,
+        "end_ms": 6000,
+        "score": 78.1,
+        "confidence": 0.77,
+        "reason": "Window overlaps CTA context with stronger reward and attention support for prior lift potential.",
+        "contribution": 0.60137
+      },
+      {
+        "start_ms": 3000,
+        "end_ms": 4000,
+        "score": 73.4,
+        "confidence": 0.74,
+        "reason": "Window combined stronger reward and attention proxies that support directional lift potential.",
+        "contribution": 0.54316
+      }
+    ],
+    "feature_inputs": [
+      {
+        "feature_name": "cta_reception_score",
+        "source": "taxonomy",
+        "raw_value": 73.5,
+        "normalized_value": 0.735,
+        "weight": 0.11
+      },
+      {
+        "feature_name": "reward_anticipation_index",
+        "source": "taxonomy",
+        "raw_value": 72.1,
+        "normalized_value": 0.721,
+        "weight": 0.13
+      },
+      {
+        "feature_name": "attention_synchrony_legacy",
+        "source": "legacy_performance",
+        "raw_value": 0.62,
+        "normalized_value": 0.81,
+        "weight": 0.04
+      }
+    ],
+    "evidence_summary": "Synthetic Lift Prior combines taxonomy scores with legacy performance signals to estimate directional incremental lift and iROAS before external incrementality validation. This output is a predictive prior and not a measured GeoX/holdout result.",
+    "signals_used": [
+      "attentional_synchrony_index",
+      "narrative_control_score",
+      "reward_anticipation_index",
+      "cta_reception_score",
+      "reward_proxy_mean",
+      "attention_synchrony_legacy"
+    ]
+  }
+}

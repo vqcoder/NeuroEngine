@@ -1,0 +1,214 @@
+name: Readout Guardian Weekly Audit
+
+on:
+  schedule:
+    - cron: "0 16 * * 1"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+
+concurrency:
+  group: readout-guardian-weekly-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    name: weekly-audit
+    runs-on: ubuntu-latest
+    outputs:
+      fails: ${{ steps.audit.outputs.fails }}
+      warns: ${{ steps.audit.outputs.warns }}
+      report: ${{ steps.audit.outputs.report }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        working-directory: services/biograph_api
+        run: uv sync --extra dev
+
+      - name: Run weekly guardian audit
+        id: audit
+        shell: bash
+        env:
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -u
+
+          fails=0
+          warns=0
+
+          report="$(mktemp)"
+          pass() { echo "PASS $1" | tee -a "${report}"; }
+          fail() { echo "FAIL $1" | tee -a "${report}"; fails=$((fails+1)); }
+          warn() { echo "WARN $1" | tee -a "${report}"; warns=$((warns+1)); }
+
+          cutoff="$(date -u -d '7 days ago' +"%Y-%m-%dT%H:%M:%SZ")"
+          echo "Audit window starts: ${cutoff}" | tee -a "${report}"
+
+          if (cd services/biograph_api && uv run python -m app.readout_guardian --print-report >/tmp/guardian_weekly.log 2>&1); then
+            pass "local guardian validation"
+          else
+            fail "local guardian validation"
+            cat /tmp/guardian_weekly.log | tee -a "${report}"
+          fi
+
+          baseline="services/biograph_api/app/readout_guardian_baseline.json"
+          run_id="$(jq -r '.learning_approval.run_id // empty' "${baseline}")"
+          if [ -n "${run_id}" ]; then
+            pass "baseline run_id present (${run_id})"
+          else
+            fail "baseline run_id present"
+          fi
+
+          metadata="ml/training/approved_runs/${run_id}.json"
+          if [ -f "${metadata}" ]; then
+            pass "metadata file exists for baseline run_id"
+          else
+            fail "metadata file exists for baseline run_id"
+          fi
+
+          if [ -f "${metadata}" ] && jq -e --arg rid "${run_id}" '.training.run_id==$rid and .approval.status=="approved" and .guardian.allow_baseline_refresh==true' "${metadata}" >/dev/null; then
+            pass "metadata approval flags valid"
+          else
+            fail "metadata approval flags valid"
+          fi
+
+          if grep -q 'Guard baseline update provenance' .github/workflows/readout-guardian-check.yml && grep -q 'ml/training/approved_runs/\*\.json' .github/workflows/readout-guardian-baseline-update.yml; then
+            pass "workflow guardrails present in YAML"
+          else
+            fail "workflow guardrails present in YAML"
+          fi
+
+          main_runs_json="$(gh api -H "Accept: application/vnd.github+json" "/repos/${REPO}/actions/workflows/readout-guardian-check.yml/runs?branch=main&event=push&per_page=20")"
+          if jq -e --arg cutoff "${cutoff}" '[.workflow_runs[] | select(.conclusion=="success" and .created_at >= $cutoff)] | length > 0' <<<"${main_runs_json}" >/dev/null; then
+            pass "main push guardian check has success in last 7 days"
+            jq -r --arg cutoff "${cutoff}" '[.workflow_runs[] | select(.conclusion=="success" and .created_at >= $cutoff)][0] | "  run_id=\(.id) created_at=\(.created_at) url=\(.html_url)"' <<<"${main_runs_json}" | tee -a "${report}"
+          else
+            fail "main push guardian check has success in last 7 days"
+          fi
+
+          baseline_runs_json="$(gh api -H "Accept: application/vnd.github+json" "/repos/${REPO}/actions/workflows/readout-guardian-baseline-update.yml/runs?branch=main&event=workflow_dispatch&per_page=20")"
+          if jq -e '[.workflow_runs[] | select(.conclusion=="success")] | length > 0' <<<"${baseline_runs_json}" >/dev/null; then
+            pass "baseline-update workflow has at least one successful dispatch"
+            jq -r '[.workflow_runs[] | select(.conclusion=="success")][0] | "  run_id=\(.id) created_at=\(.created_at) url=\(.html_url)"' <<<"${baseline_runs_json}" | tee -a "${report}"
+          else
+            fail "baseline-update workflow has at least one successful dispatch"
+          fi
+
+          bp_error="$(mktemp)"
+          if bp_json="$(gh api -H "Accept: application/vnd.github+json" "/repos/${REPO}/branches/main/protection" 2>"${bp_error}")"; then
+            if jq -e '.required_status_checks.contexts[]? == "readout-guardian"' <<<"${bp_json}" >/dev/null; then
+              pass "branch protection requires readout-guardian"
+            else
+              warn "branch protection readable but readout-guardian not required"
+            fi
+          else
+            if grep -Eq 'HTTP 403|Upgrade to GitHub Pro' "${bp_error}"; then
+              warn "branch protection API blocked by GitHub plan (expected 403 on current plan)"
+            else
+              fail "branch protection API check failed"
+              cat "${bp_error}" | tee -a "${report}"
+            fi
+          fi
+
+          echo "fails=${fails}" >> "${GITHUB_OUTPUT}"
+          echo "warns=${warns}" >> "${GITHUB_OUTPUT}"
+          {
+            echo 'report<<EOF'
+            cat "${report}"
+            echo "Audit result: fails=${fails} warns=${warns}"
+            echo 'EOF'
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Fail on audit failures
+        if: steps.audit.outputs.fails != '0'
+        run: |
+          echo "Readout guardian weekly audit failed with ${{ steps.audit.outputs.fails }} failure(s)."
+          exit 1
+
+  open-failure-issue:
+    name: open-failure-issue
+    needs: audit
+    if: needs.audit.outputs.fails != '0' && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Open or update issue
+        uses: actions/github-script@v7
+        env:
+          AUDIT_FAILS: ${{ needs.audit.outputs.fails }}
+          AUDIT_WARNS: ${{ needs.audit.outputs.warns }}
+          AUDIT_REPORT: ${{ needs.audit.outputs.report }}
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const labelName = 'readout-guardian-audit';
+            const titlePrefix = 'Readout Guardian weekly audit failed';
+            const runUrl = `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`;
+            const body = [
+              `Weekly guardian audit failed.`,
+              '',
+              `- Fails: ${process.env.AUDIT_FAILS}`,
+              `- Warns: ${process.env.AUDIT_WARNS}`,
+              `- Run: ${runUrl}`,
+              '',
+              '```text',
+              process.env.AUDIT_REPORT || '(no report)',
+              '```'
+            ].join('\n');
+
+            try {
+              await github.rest.issues.getLabel({ owner, repo, name: labelName });
+            } catch (error) {
+              if (error.status === 404) {
+                await github.rest.issues.createLabel({
+                  owner,
+                  repo,
+                  name: labelName,
+                  color: 'B60205',
+                  description: 'Failures from weekly readout guardian audit'
+                });
+              } else {
+                throw error;
+              }
+            }
+
+            const existing = await github.rest.issues.listForRepo({
+              owner,
+              repo,
+              state: 'open',
+              labels: labelName,
+              per_page: 100
+            });
+
+            const match = existing.data.find((issue) => issue.title.startsWith(titlePrefix));
+            if (match) {
+              await github.rest.issues.createComment({ owner, repo, issue_number: match.number, body });
+            } else {
+              const today = new Date().toISOString().slice(0, 10);
+              await github.rest.issues.create({
+                owner,
+                repo,
+                title: `${titlePrefix} (${today})`,
+                body,
+                labels: [labelName]
+              });
+            }

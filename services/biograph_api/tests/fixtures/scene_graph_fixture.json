@@ -1,0 +1,97 @@
+{
+  "study": {
+    "name": "Scene Graph Study",
+    "description": "Fixture for scene graph persistence and overlay tests"
+  },
+  "video": {
+    "title": "Scene Graph Stimulus",
+    "source_url": "https://cdn.example.com/scene-graph.mp4",
+    "duration_ms": 12000,
+    "variant_id": "variant-a",
+    "metadata": {
+      "codec": "h264",
+      "variant_id": "variant-a"
+    },
+    "scenes": [
+      {
+        "scene_id": "scene-1",
+        "start_ms": 0,
+        "end_ms": 3000,
+        "label": "Hook",
+        "thumbnail_url": "https://cdn.example.com/thumbs/scene-1.jpg"
+      },
+      {
+        "scene_id": "scene-2",
+        "start_ms": 3000,
+        "end_ms": 6000,
+        "label": "Build"
+      },
+      {
+        "scene_id": "scene-3",
+        "start_ms": 6000,
+        "end_ms": 9000,
+        "label": "Friction"
+      },
+      {
+        "scene_id": "scene-4",
+        "start_ms": 9000,
+        "end_ms": 12000,
+        "label": "Recovery"
+      }
+    ],
+    "cuts": [
+      { "cut_id": "cut-1", "video_time_ms": 0, "scene_id": "scene-1" },
+      { "cut_id": "cut-2", "video_time_ms": 1500, "scene_id": "scene-1" },
+      { "cut_id": "cut-3", "video_time_ms": 3000, "scene_id": "scene-2" },
+      { "cut_id": "cut-4", "video_time_ms": 4500, "scene_id": "scene-2" },
+      { "cut_id": "cut-5", "video_time_ms": 6000, "scene_id": "scene-3" },
+      { "cut_id": "cut-6", "video_time_ms": 7500, "scene_id": "scene-3" },
+      { "cut_id": "cut-7", "video_time_ms": 9000, "scene_id": "scene-4" },
+      { "cut_id": "cut-8", "video_time_ms": 10500, "scene_id": "scene-4" }
+    ],
+    "cta_markers": [
+      {
+        "cta_id": "cta-main",
+        "start_ms": 4300,
+        "end_ms": 5200,
+        "label": "Primary CTA",
+        "scene_id": "scene-2",
+        "cut_id": "cut-4"
+      }
+    ]
+  },
+  "participant": {
+    "external_id": "scene-graph-participant-1"
+  },
+  "trace_rows": [
+    {
+      "t_ms": 4600,
+      "video_time_ms": 4600,
+      "face_ok": true,
+      "brightness": 92.0,
+      "landmarks_ok": true,
+      "blink": 0,
+      "au": {
+        "AU04": 0.02,
+        "AU06": 0.08,
+        "AU12": 0.13,
+        "AU45": 0.0,
+        "AU25": 0.05,
+        "AU26": 0.04
+      },
+      "au_norm": {
+        "AU04": 0.01,
+        "AU06": 0.04,
+        "AU12": 0.07,
+        "AU45": 0.0,
+        "AU25": 0.03,
+        "AU26": 0.02
+      },
+      "head_pose": {
+        "yaw": 2.1,
+        "pitch": -0.8,
+        "roll": 0.5
+      }
+    }
+  ]
+}

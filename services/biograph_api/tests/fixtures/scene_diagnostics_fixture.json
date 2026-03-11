@@ -1,0 +1,172 @@
+{
+  "window_ms": 1000,
+  "scenes": [
+    {
+      "scene_index": 0,
+      "start_ms": 0,
+      "end_ms": 2000,
+      "scene_id": "scene-1",
+      "cut_id": "cut-1",
+      "label": "Hook",
+      "thumbnail_url": "https://cdn.example.com/thumbs/scene-1.jpg"
+    },
+    {
+      "scene_index": 1,
+      "start_ms": 2000,
+      "end_ms": 4000,
+      "scene_id": "scene-2",
+      "cut_id": "cut-2",
+      "cta_id": "cta-main",
+      "label": "Value"
+    },
+    {
+      "scene_index": 2,
+      "start_ms": 4000,
+      "end_ms": 6000,
+      "scene_id": "scene-3",
+      "cut_id": "cut-3",
+      "label": "Friction"
+    },
+    {
+      "scene_index": 3,
+      "start_ms": 6000,
+      "end_ms": 8000,
+      "scene_id": "scene-4",
+      "cut_id": "cut-4",
+      "label": "Recovery"
+    }
+  ],
+  "points": [
+    {
+      "video_time_ms": 0,
+      "attention_score": 45.0,
+      "reward_proxy": 42.0,
+      "attention_velocity": 0.0,
+      "blink_rate": 0.10,
+      "au4": 0.02,
+      "tracking_confidence": 0.90,
+      "scene_id": "scene-1",
+      "cut_id": "cut-1"
+    },
+    {
+      "video_time_ms": 1000,
+      "attention_score": 60.0,
+      "reward_proxy": 58.0,
+      "attention_velocity": 8.0,
+      "blink_rate": 0.08,
+      "au4": 0.02,
+      "tracking_confidence": 0.88,
+      "scene_id": "scene-1",
+      "cut_id": "cut-1"
+    },
+    {
+      "video_time_ms": 2000,
+      "attention_score": 62.0,
+      "reward_proxy": 65.0,
+      "attention_velocity": 2.0,
+      "blink_rate": 0.10,
+      "au4": 0.03,
+      "tracking_confidence": 0.85,
+      "scene_id": "scene-2",
+      "cut_id": "cut-2",
+      "cta_id": "cta-main"
+    },
+    {
+      "video_time_ms": 3000,
+      "attention_score": 68.0,
+      "reward_proxy": 72.0,
+      "attention_velocity": 3.0,
+      "blink_rate": 0.09,
+      "au4": 0.03,
+      "tracking_confidence": 0.86,
+      "scene_id": "scene-2",
+      "cut_id": "cut-2",
+      "cta_id": "cta-main"
+    },
+    {
+      "video_time_ms": 4000,
+      "attention_score": 40.0,
+      "reward_proxy": 35.0,
+      "attention_velocity": -10.0,
+      "blink_rate": 0.42,
+      "au4": 0.16,
+      "tracking_confidence": 0.70,
+      "scene_id": "scene-3",
+      "cut_id": "cut-3"
+    },
+    {
+      "video_time_ms": 5000,
+      "attention_score": 32.0,
+      "reward_proxy": 28.0,
+      "attention_velocity": -8.0,
+      "blink_rate": 0.48,
+      "au4": 0.18,
+      "tracking_confidence": 0.66,
+      "scene_id": "scene-3",
+      "cut_id": "cut-3"
+    },
+    {
+      "video_time_ms": 6000,
+      "attention_score": 46.0,
+      "reward_proxy": 50.0,
+      "attention_velocity": 9.0,
+      "blink_rate": 0.12,
+      "au4": 0.06,
+      "tracking_confidence": 0.80,
+      "scene_id": "scene-4",
+      "cut_id": "cut-4"
+    },
+    {
+      "video_time_ms": 7000,
+      "attention_score": 52.0,
+      "reward_proxy": 56.0,
+      "attention_velocity": 6.0,
+      "blink_rate": 0.10,
+      "au4": 0.05,
+      "tracking_confidence": 0.84,
+      "scene_id": "scene-4",
+      "cut_id": "cut-4"
+    }
+  ],
+  "cta_markers": [
+    {
+      "cta_id": "cta-main",
+      "video_time_ms": 3000,
+      "scene_id": "scene-2",
+      "cut_id": "cut-2"
+    }
+  ],
+  "attention_gain_segments": [
+    {
+      "start_video_time_ms": 6000,
+      "end_video_time_ms": 8000,
+      "magnitude": 10.0,
+      "confidence": 0.82,
+      "reason_codes": ["above_local_baseline", "upward_velocity"],
+      "scene_id": "scene-4",
+      "cut_id": "cut-4"
+    }
+  ],
+  "attention_loss_segments": [
+    {
+      "start_video_time_ms": 4000,
+      "end_video_time_ms": 6000,
+      "magnitude": 12.0,
+      "confidence": 0.70,
+      "reason_codes": ["below_local_baseline", "downward_velocity"],
+      "scene_id": "scene-3",
+      "cut_id": "cut-3"
+    }
+  ],
+  "confusion_segments": [
+    {
+      "start_video_time_ms": 4000,
+      "end_video_time_ms": 6000,
+      "magnitude": 6.0,
+      "confidence": 0.68,
+      "reason_codes": ["elevated_blink_rate", "au4_friction_proxy"],
+      "scene_id": "scene-3",
+      "cut_id": "cut-3"
+    }
+  ]
+}

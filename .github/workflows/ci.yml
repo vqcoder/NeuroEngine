@@ -1,0 +1,205 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Python backend
+  # ---------------------------------------------------------------------------
+  backend-tests:
+    name: backend · pytest
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/biograph_api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Run tests
+        run: uv run pytest tests/ -x -q --tb=short
+
+  guardian-fingerprint:
+    name: backend · guardian
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/biograph_api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Validate readout guardian
+        run: |
+          uv run python -c "
+          from app.readout_guardian import enforce_readout_guardian
+          result = enforce_readout_guardian()
+          print(f'Guardian OK: {result}')
+          "
+
+  # ---------------------------------------------------------------------------
+  # Dashboard (Vite + React)
+  # ---------------------------------------------------------------------------
+  dashboard-typecheck:
+    name: dashboard · tsc
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/dashboard
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+  dashboard-tests:
+    name: dashboard · vitest
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/dashboard
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npx vitest run
+
+  # ---------------------------------------------------------------------------
+  # WatchLab (Next.js)
+  # ---------------------------------------------------------------------------
+  watchlab-typecheck:
+    name: watchlab · tsc
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/watchlab
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+  watchlab-tests:
+    name: watchlab · jest
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/watchlab
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npx jest --ci
+
+  # ---------------------------------------------------------------------------
+  # Deploy gate — Docker smoke test against real Dockerfile + Postgres
+  # ---------------------------------------------------------------------------
+  deploy-gate:
+    name: backend · deploy-gate
+    runs-on: ubuntu-latest
+    needs: [backend-tests, guardian-fingerprint]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: biograph_test
+          POSTGRES_USER: biograph_test
+          POSTGRES_PASSWORD: test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U biograph_test"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        working-directory: services/biograph_api
+        run: docker build -t biograph-api:ci .
+
+      - name: Start container
+        run: |
+          docker run -d --name biograph-ci \
+            --add-host=host.docker.internal:host-gateway \
+            -e DATABASE_URL="postgresql+psycopg://biograph_test:test_password@host.docker.internal:5432/biograph_test" \
+            -e API_TOKEN_REQUIRED=false \
+            -e PORT=8000 \
+            -p 8000:8000 \
+            biograph-api:ci
+
+      - name: Wait for healthy
+        run: |
+          for i in $(seq 1 30); do
+            RESP=$(curl -sf http://localhost:8000/health 2>/dev/null) && {
+              echo "${RESP}" | python3 -c "
+          import sys, json
+          h = json.load(sys.stdin)
+          assert h['ok'], f'Health not ok: {h}'
+          assert h['checks']['readout_guardian'] == 'ok', f'Guardian: {h[\"checks\"]}'
+          print('Deploy gate passed:', json.dumps(h, indent=2))
+          "
+              exit 0
+            }
+            echo "Attempt ${i}/30 — waiting 3s..."
+            sleep 3
+          done
+          echo "::error::Deploy gate failed"
+          docker logs biograph-ci
+          exit 1
+
+      - name: Cleanup
+        if: always()
+        run: docker rm -f biograph-ci 2>/dev/null || true

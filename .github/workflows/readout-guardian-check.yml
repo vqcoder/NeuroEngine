@@ -1,0 +1,77 @@
+name: Readout Guardian Check
+
+on:
+  pull_request:
+    paths:
+      - "services/biograph_api/**"
+      - "ml/training/approved_runs/**"
+      - ".github/workflows/readout-guardian-*.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "services/biograph_api/**"
+      - "ml/training/approved_runs/**"
+      - ".github/workflows/readout-guardian-*.yml"
+
+jobs:
+  readout-guardian:
+    name: readout-guardian
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/biograph_api
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Validate guardian baseline
+        run: uv run python -m app.readout_guardian --print-report
+
+      - name: Guard baseline update provenance
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          CHANGED_FILES="$(git diff --name-only "origin/${BASE_REF}...HEAD")"
+          BASELINE_FILE="services/biograph_api/app/readout_guardian_baseline.json"
+          if ! printf '%s\n' "${CHANGED_FILES}" | grep -qx "${BASELINE_FILE}"; then
+            exit 0
+          fi
+          RUN_ID="$(uv run python -c "import json; print(json.load(open('${BASELINE_FILE}', 'r', encoding='utf-8'))['learning_approval']['run_id'])")"
+          if git cat-file -e "origin/${BASE_REF}:${BASELINE_FILE}" 2>/dev/null; then
+            BASE_RUN_ID="$(git show "origin/${BASE_REF}:${BASELINE_FILE}" | uv run python -c "import json,sys; print(json.load(sys.stdin)['learning_approval']['run_id'])")"
+            if [ "${RUN_ID}" = "${BASE_RUN_ID}" ]; then
+              echo "Baseline changed without a new approved training run_id."
+              exit 1
+            fi
+          fi
+          REQUIRED_METADATA="ml/training/approved_runs/${RUN_ID}.json"
+          if [ ! -f "${REQUIRED_METADATA}" ]; then
+            echo "Baseline changed without matching approved metadata file in repo: ${REQUIRED_METADATA}"
+            exit 1
+          fi
+
+      - name: Run guardian and readout tests
+        run: |
+          uv run python -m pytest -q -p no:cacheprovider \
+            tests/test_readout_config_alignment.py \
+            tests/test_readout_learning_metadata.py \
+            tests/test_readout_guardian_metadata_link.py \
+            tests/test_readout_guardian.py \
+            tests/test_readout_metrics.py \
+            tests/test_readout_endpoint.py \
+            tests/test_trace_extra_fields.py

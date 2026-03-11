@@ -1,0 +1,23 @@
+{
+  "readout": {
+    "low_confidence_tracking_threshold": 0.5,
+    "quality_badge": {
+      "high": {
+        "min_tracking_confidence": 0.75,
+        "min_face_ok_rate": 0.85
+      },
+      "medium": {
+        "min_tracking_confidence": 0.55,
+        "min_face_ok_rate": 0.65
+      }
+    }
+  },
+  "extractor": {
+    "quality_flags": {
+      "low_light_max_brightness": 45.0,
+      "blur_min_quality_score": 0.4,
+      "face_visible_pct_min": 0.5,
+      "head_pose_valid_pct_min": 0.6
+    }
+  }
+}

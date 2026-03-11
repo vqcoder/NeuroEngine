@@ -1,0 +1,164 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_version": "2026-03-08",
+  "cases": [
+    {
+      "case_id": "controlled_story_good_v1",
+      "pattern_id": "controlled_story",
+      "quality_label": "known_good",
+      "notes": "Known-good controlled hook to payoff structure with coherent CTA timing and high-signal quality.",
+      "scores": {
+        "arrest_score": { "scalar_value": 82.0, "confidence": 0.88, "status": "available", "model_version": "neuro_taxonomy_v1" },
+        "attentional_synchrony_index": { "scalar_value": 80.0, "confidence": 0.85, "status": "available", "model_version": "neuro_taxonomy_v1" },
+        "narrative_control_score": { "scalar_value": 78.0, "confidence": 0.83, "status": "available", "model_version": "neuro_taxonomy_v1" },
+        "blink_transport_score": { "scalar_value": 74.0, "confidence": 0.76, "status": "available", "model_version": "neuro_taxonomy_v1" },
+        "boundary_encoding_score": { "scalar_value": 76.0, "confidence": 0.8, "status": "available", "model_version": "neuro_taxonomy_v1" },
+        "reward_anticipation_index": { "scalar_value": 81.0, "confidence": 0.86, "status": "available", "model_version": "neuro_taxonomy_v1" },
+        "social_transmission_score": { "scalar_value": 73.0, "confidence": 0.72, "status": "available", "model_version": "neuro_taxonomy_v1" },
+        "self_relevance_score": { "scalar_value": 70.0, "confidence": 0.74, "status": "available", "model_version": "neuro_taxonomy_v1" },
+        "cta_reception_score": { "scalar_value": 79.0, "confidence": 0.84, "status": "available", "model_version": "neuro_taxonomy_v1" },
+        "synthetic_lift_prior": { "scalar_value": 75.0, "confidence": 0.71, "status": "available", "model_version": "neuro_taxonomy_v1" },
+        "au_friction_score": { "scalar_value": 41.0, "confidence": 0.69, "status": "available", "model_version": "neuro_taxonomy_v1" }
+      },
+      "pathways": {
+        "attentional_synchrony": "direct_panel_gaze",
+        "narrative_control": "timeline_grammar",
+        "blink_transport": "direct_panel_blink",
+        "reward_anticipation": "timeline_dynamics",
+        "boundary_encoding": "timeline_boundary_model",
+        "social_transmission": "timeline_signal_model",
+        "self_relevance": "contextual_personalization",
+        "synthetic_lift_prior": "taxonomy_regression",
+        "au_friction": "au_signal_model",
+        "cta_reception": "multi_signal_model"
+      },
+      "quality": {
+        "trace_source": "provided",
+        "mean_tracking_confidence": 0.84,
+        "low_confidence_windows": 1
+      }
+    },
+    {
+      "case_id": "fragmented_story_bad_v1",
+      "pattern_id": "fragmented_story",
+      "quality_label": "known_bad",
+      "notes": "Known-bad fragmented pacing with weak hook, unstable focus, and CTA after collapse.",
+      "scores": {
+        "arrest_score": { "scalar_value": 46.0, "confidence": 0.62, "status": "available", "model_version": "neuro_taxonomy_v1" },
+        "attentional_synchrony_index": { "scalar_value": 42.0, "confidence": 0.48, "status": "available", "model_version": "neuro_taxonomy_v1" },
+        "narrative_control_score": { "scalar_value": 38.0, "confidence": 0.51, "status": "available", "model_version": "neuro_taxonomy_v1" },
+        "blink_transport_score": { "scalar_value": 41.0, "confidence": 0.44, "status": "available", "model_version": "neuro_taxonomy_v1" },
+        "boundary_encoding_score": { "scalar_value": 36.0, "confidence": 0.49, "status": "available", "model_version": "neuro_taxonomy_v1" },
+        "reward_anticipation_index": { "scalar_value": 40.0, "confidence": 0.53, "status": "available", "model_version": "neuro_taxonomy_v1" },
+        "social_transmission_score": { "scalar_value": 35.0, "confidence": 0.45, "status": "available", "model_version": "neuro_taxonomy_v1" },
+        "self_relevance_score": { "scalar_value": 34.0, "confidence": 0.43, "status": "available", "model_version": "neuro_taxonomy_v1" },
+        "cta_reception_score": { "scalar_value": 38.0, "confidence": 0.46, "status": "available", "model_version": "neuro_taxonomy_v1" },
+        "synthetic_lift_prior": { "scalar_value": 33.0, "confidence": 0.42, "status": "available", "model_version": "neuro_taxonomy_v1" },
+        "au_friction_score": { "scalar_value": 68.0, "confidence": 0.52, "status": "available", "model_version": "neuro_taxonomy_v1" }
+      },
+      "pathways": {
+        "attentional_synchrony": "fallback_proxy",
+        "narrative_control": "fallback_proxy",
+        "blink_transport": "sparse_fallback",
+        "reward_anticipation": "fallback_proxy",
+        "boundary_encoding": "fallback_proxy",
+        "social_transmission": "fallback_proxy",
+        "self_relevance": "fallback_proxy",
+        "synthetic_lift_prior": "fallback_proxy",
+        "au_friction": "fallback_proxy",
+        "cta_reception": "fallback_proxy"
+      },
+      "quality": {
+        "trace_source": "mixed",
+        "mean_tracking_confidence": 0.46,
+        "low_confidence_windows": 6
+      }
+    },
+    {
+      "case_id": "controlled_story_good_v2",
+      "pattern_id": "controlled_story",
+      "quality_label": "known_good",
+      "notes": "Known-good controlled pattern after taxonomy update with bounded score movement.",
+      "scores": {
+        "arrest_score": { "scalar_value": 84.0, "confidence": 0.89, "status": "available", "model_version": "neuro_taxonomy_v2" },
+        "attentional_synchrony_index": { "scalar_value": 81.0, "confidence": 0.86, "status": "available", "model_version": "neuro_taxonomy_v2" },
+        "narrative_control_score": { "scalar_value": 79.0, "confidence": 0.84, "status": "available", "model_version": "neuro_taxonomy_v2" },
+        "blink_transport_score": { "scalar_value": 73.0, "confidence": 0.77, "status": "available", "model_version": "neuro_taxonomy_v2" },
+        "boundary_encoding_score": { "scalar_value": 78.0, "confidence": 0.81, "status": "available", "model_version": "neuro_taxonomy_v2" },
+        "reward_anticipation_index": { "scalar_value": 83.0, "confidence": 0.87, "status": "available", "model_version": "neuro_taxonomy_v2" },
+        "social_transmission_score": { "scalar_value": 74.0, "confidence": 0.73, "status": "available", "model_version": "neuro_taxonomy_v2" },
+        "self_relevance_score": { "scalar_value": 71.0, "confidence": 0.75, "status": "available", "model_version": "neuro_taxonomy_v2" },
+        "cta_reception_score": { "scalar_value": 81.0, "confidence": 0.85, "status": "available", "model_version": "neuro_taxonomy_v2" },
+        "synthetic_lift_prior": { "scalar_value": 77.0, "confidence": 0.72, "status": "available", "model_version": "neuro_taxonomy_v2" },
+        "au_friction_score": { "scalar_value": 39.0, "confidence": 0.71, "status": "available", "model_version": "neuro_taxonomy_v2" }
+      },
+      "pathways": {
+        "attentional_synchrony": "direct_panel_gaze",
+        "narrative_control": "timeline_grammar",
+        "blink_transport": "direct_panel_blink",
+        "reward_anticipation": "timeline_dynamics",
+        "boundary_encoding": "timeline_boundary_model",
+        "social_transmission": "timeline_signal_model",
+        "self_relevance": "contextual_personalization",
+        "synthetic_lift_prior": "taxonomy_regression",
+        "au_friction": "au_signal_model",
+        "cta_reception": "multi_signal_model"
+      },
+      "quality": {
+        "trace_source": "provided",
+        "mean_tracking_confidence": 0.85,
+        "low_confidence_windows": 1
+      }
+    },
+    {
+      "case_id": "fragmented_story_bad_v2",
+      "pattern_id": "fragmented_story",
+      "quality_label": "known_bad",
+      "notes": "Known-bad fragmented pattern after taxonomy update with bounded drift and fallback reliance.",
+      "scores": {
+        "arrest_score": { "scalar_value": 47.0, "confidence": 0.63, "status": "available", "model_version": "neuro_taxonomy_v2" },
+        "attentional_synchrony_index": { "scalar_value": 43.0, "confidence": 0.5, "status": "available", "model_version": "neuro_taxonomy_v2" },
+        "narrative_control_score": { "scalar_value": 40.0, "confidence": 0.52, "status": "available", "model_version": "neuro_taxonomy_v2" },
+        "blink_transport_score": { "scalar_value": 42.0, "confidence": 0.46, "status": "available", "model_version": "neuro_taxonomy_v2" },
+        "boundary_encoding_score": { "scalar_value": 38.0, "confidence": 0.5, "status": "available", "model_version": "neuro_taxonomy_v2" },
+        "reward_anticipation_index": { "scalar_value": 41.0, "confidence": 0.54, "status": "available", "model_version": "neuro_taxonomy_v2" },
+        "social_transmission_score": { "scalar_value": 36.0, "confidence": 0.46, "status": "available", "model_version": "neuro_taxonomy_v2" },
+        "self_relevance_score": { "scalar_value": 35.0, "confidence": 0.44, "status": "available", "model_version": "neuro_taxonomy_v2" },
+        "cta_reception_score": { "scalar_value": 40.0, "confidence": 0.48, "status": "available", "model_version": "neuro_taxonomy_v2" },
+        "synthetic_lift_prior": { "scalar_value": 34.0, "confidence": 0.43, "status": "available", "model_version": "neuro_taxonomy_v2" },
+        "au_friction_score": { "scalar_value": 67.0, "confidence": 0.53, "status": "available", "model_version": "neuro_taxonomy_v2" }
+      },
+      "pathways": {
+        "attentional_synchrony": "fallback_proxy",
+        "narrative_control": "fallback_proxy",
+        "blink_transport": "sparse_fallback",
+        "reward_anticipation": "fallback_proxy",
+        "boundary_encoding": "fallback_proxy",
+        "social_transmission": "fallback_proxy",
+        "self_relevance": "fallback_proxy",
+        "synthetic_lift_prior": "fallback_proxy",
+        "au_friction": "fallback_proxy",
+        "cta_reception": "fallback_proxy"
+      },
+      "quality": {
+        "trace_source": "mixed",
+        "mean_tracking_confidence": 0.47,
+        "low_confidence_windows": 5
+      }
+    }
+  ],
+  "ordering_expectations": [
+    { "expectation_id": "good_v1_gt_bad_v1_arrest", "better_case_id": "controlled_story_good_v1", "worse_case_id": "fragmented_story_bad_v1", "metric_key": "arrest_score", "min_delta": 20.0 },
+    { "expectation_id": "good_v1_gt_bad_v1_narrative", "better_case_id": "controlled_story_good_v1", "worse_case_id": "fragmented_story_bad_v1", "metric_key": "narrative_control_score", "min_delta": 20.0 },
+    { "expectation_id": "good_v1_gt_bad_v1_reward", "better_case_id": "controlled_story_good_v1", "worse_case_id": "fragmented_story_bad_v1", "metric_key": "reward_anticipation_index", "min_delta": 20.0 },
+    { "expectation_id": "good_v1_gt_bad_v1_cta", "better_case_id": "controlled_story_good_v1", "worse_case_id": "fragmented_story_bad_v1", "metric_key": "cta_reception_score", "min_delta": 20.0 },
+    { "expectation_id": "good_v2_gt_bad_v2_arrest", "better_case_id": "controlled_story_good_v2", "worse_case_id": "fragmented_story_bad_v2", "metric_key": "arrest_score", "min_delta": 20.0 },
+    { "expectation_id": "good_v2_gt_bad_v2_narrative", "better_case_id": "controlled_story_good_v2", "worse_case_id": "fragmented_story_bad_v2", "metric_key": "narrative_control_score", "min_delta": 20.0 },
+    { "expectation_id": "good_v2_gt_bad_v2_reward", "better_case_id": "controlled_story_good_v2", "worse_case_id": "fragmented_story_bad_v2", "metric_key": "reward_anticipation_index", "min_delta": 20.0 },
+    { "expectation_id": "good_v2_gt_bad_v2_cta", "better_case_id": "controlled_story_good_v2", "worse_case_id": "fragmented_story_bad_v2", "metric_key": "cta_reception_score", "min_delta": 20.0 }
+  ],
+  "drift_expectations": [
+    { "expectation_id": "controlled_story_drift_v1_to_v2", "baseline_case_id": "controlled_story_good_v1", "candidate_case_id": "controlled_story_good_v2", "max_mean_abs_delta": 3.0, "max_metric_abs_delta": 5.0 },
+    { "expectation_id": "fragmented_story_drift_v1_to_v2", "baseline_case_id": "fragmented_story_bad_v1", "candidate_case_id": "fragmented_story_bad_v2", "max_mean_abs_delta": 3.0, "max_metric_abs_delta": 5.0 }
+  ]
+}

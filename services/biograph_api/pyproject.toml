@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "biograph_api"
+version = "0.1.0"
+description = "FastAPI service for study/session biometric traces"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.111.0,<1.0",
+  "uvicorn[standard]>=0.30.0,<1.0",
+  "sqlalchemy>=2.0.30,<3.0",
+  "psycopg[binary]>=3.1.18,<4.0",
+  "alembic>=1.13.2,<2.0",
+  "pydantic>=2.7.0,<3.0",
+  "pydantic-settings>=2.3.3,<3.0",
+  "python-multipart>=0.0.9,<1.0",
+  "yt-dlp>=2025.1.15,<2027.0.0",
+  "httpx>=0.27.0,<1.0",
+  "slowapi>=0.1.9,<1.0"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.2.0",
+  "httpx>=0.27.0"
+]
+
+[project.scripts]
+biograph-api = "app.main:run"
+neuro-eval-runner = "app.neuro_eval_runner:main"
+
+[tool.setuptools]
+packages = ["app"]
+
+[tool.setuptools.package-data]
+app = ["readout_guardian_baseline.json"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

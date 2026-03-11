@@ -1,0 +1,160 @@
+{
+  "study": {
+    "name": "Synthetic Passive Session",
+    "description": "Deterministic fixture for passive flow + quality + telemetry regressions"
+  },
+  "video": {
+    "title": "Stimulus Synthetic",
+    "source_url": "https://cdn.example.com/synthetic.mp4",
+    "duration_ms": 6000,
+    "scene_boundaries": [
+      {
+        "start_ms": 0,
+        "end_ms": 3000,
+        "label": "intro",
+        "scene_id": "scene-1",
+        "cut_id": "cut-1",
+        "cta_id": "cta-prep"
+      },
+      {
+        "start_ms": 3000,
+        "end_ms": 6000,
+        "label": "cta",
+        "scene_id": "scene-2",
+        "cut_id": "cut-2",
+        "cta_id": "cta-main"
+      }
+    ]
+  },
+  "participant": {
+    "external_id": "fixture-p-001",
+    "demographics": {
+      "age": 31
+    }
+  },
+  "trace_rows": [
+    {
+      "t_ms": 0,
+      "face_ok": true,
+      "brightness": 16.0,
+      "landmarks_ok": true,
+      "blink": 0,
+      "dial": 62,
+      "dopamine": 58,
+      "quality_score": 0.34,
+      "quality_confidence": 0.4,
+      "au": {"AU04": 0.1, "AU06": 0.2, "AU12": 0.3, "AU45": 0.0, "AU25": 0.1, "AU26": 0.1},
+      "au_norm": {"AU04": 0.01, "AU06": 0.02, "AU12": 0.03, "AU45": 0.0, "AU25": 0.01, "AU26": 0.01},
+      "head_pose": {"yaw": 0.1, "pitch": 0.2, "roll": 0.0}
+    },
+    {
+      "t_ms": 1000,
+      "face_ok": true,
+      "brightness": 18.0,
+      "landmarks_ok": true,
+      "blink": 1,
+      "dial": 64,
+      "reward_proxy": 60,
+      "quality_score": 0.37,
+      "quality_confidence": 0.44,
+      "au": {"AU04": 0.2, "AU06": 0.2, "AU12": 0.4, "AU45": 1.0, "AU25": 0.1, "AU26": 0.2},
+      "au_norm": {"AU04": 0.02, "AU06": 0.02, "AU12": 0.04, "AU45": 1.0, "AU25": 0.01, "AU26": 0.02},
+      "head_pose": {"yaw": 0.2, "pitch": 0.1, "roll": 0.0}
+    },
+    {
+      "t_ms": 2000,
+      "face_ok": false,
+      "brightness": 45.0,
+      "landmarks_ok": false,
+      "blink": 0,
+      "dial": 40,
+      "reward_proxy": 24,
+      "quality_score": 0.42,
+      "quality_confidence": 0.39,
+      "au": {"AU04": 0.0, "AU06": 0.0, "AU12": 0.0, "AU45": 0.0, "AU25": 0.0, "AU26": 0.0},
+      "au_norm": {"AU04": -0.01, "AU06": -0.01, "AU12": -0.01, "AU45": 0.0, "AU25": -0.01, "AU26": -0.01},
+      "head_pose": {"yaw": null, "pitch": null, "roll": null}
+    },
+    {
+      "t_ms": 3000,
+      "face_ok": true,
+      "brightness": 88.0,
+      "landmarks_ok": true,
+      "blink": 0,
+      "dial": 74,
+      "reward_proxy": 76,
+      "quality_score": 0.82,
+      "quality_confidence": 0.84,
+      "au": {"AU04": 0.3, "AU06": 0.3, "AU12": 0.5, "AU45": 0.0, "AU25": 0.2, "AU26": 0.3},
+      "au_norm": {"AU04": 0.03, "AU06": 0.03, "AU12": 0.05, "AU45": 0.0, "AU25": 0.02, "AU26": 0.03},
+      "head_pose": {"yaw": 0.1, "pitch": -0.1, "roll": 0.0}
+    },
+    {
+      "t_ms": 4000,
+      "face_ok": true,
+      "brightness": 90.0,
+      "landmarks_ok": true,
+      "blink": 1,
+      "dial": 78,
+      "reward_proxy": 84,
+      "quality_score": 0.86,
+      "quality_confidence": 0.88,
+      "au": {"AU04": 0.4, "AU06": 0.3, "AU12": 0.6, "AU45": 1.0, "AU25": 0.3, "AU26": 0.4},
+      "au_norm": {"AU04": 0.04, "AU06": 0.03, "AU12": 0.06, "AU45": 1.0, "AU25": 0.03, "AU26": 0.04},
+      "head_pose": {"yaw": 0.0, "pitch": 0.0, "roll": 0.0}
+    },
+    {
+      "t_ms": 5000,
+      "face_ok": true,
+      "brightness": 92.0,
+      "landmarks_ok": true,
+      "blink": 0,
+      "dial": 80,
+      "reward_proxy": 88,
+      "quality_score": 0.88,
+      "quality_confidence": 0.9,
+      "au": {"AU04": 0.3, "AU06": 0.4, "AU12": 0.6, "AU45": 0.0, "AU25": 0.2, "AU26": 0.3},
+      "au_norm": {"AU04": 0.03, "AU06": 0.04, "AU12": 0.06, "AU45": 0.0, "AU25": 0.02, "AU26": 0.03},
+      "head_pose": {"yaw": -0.1, "pitch": 0.1, "roll": 0.0}
+    }
+  ],
+  "annotations": [
+    {
+      "marker_type": "engaging_moment",
+      "video_time_ms": 1300,
+      "note": "Hook landed",
+      "created_at": "2026-03-05T15:20:01Z"
+    },
+    {
+      "marker_type": "confusing_moment",
+      "video_time_ms": 2200,
+      "note": "Unclear transition",
+      "created_at": "2026-03-05T15:20:05Z"
+    },
+    {
+      "marker_type": "cta_landed_moment",
+      "video_time_ms": 5100,
+      "note": "CTA message landed",
+      "created_at": "2026-03-05T15:20:10Z"
+    }
+  ],
+  "telemetry_events": [
+    {"event_type": "play", "video_time_ms": 0, "client_monotonic_ms": 10, "wall_time_ms": 1700000000010},
+    {"event_type": "pause", "video_time_ms": 1200, "client_monotonic_ms": 1210, "wall_time_ms": 1700000001210},
+    {"event_type": "seek_start", "video_time_ms": 3000, "client_monotonic_ms": 2505, "wall_time_ms": 1700000002505, "details": {"from_video_time_ms": 3000, "to_video_time_ms": 2500}},
+    {"event_type": "seek_end", "video_time_ms": 2500, "client_monotonic_ms": 2510, "wall_time_ms": 1700000002510, "details": {"from_video_time_ms": 3000, "to_video_time_ms": 2500}},
+    {"event_type": "seek", "video_time_ms": 2500, "client_monotonic_ms": 2512, "wall_time_ms": 1700000002512, "details": {"from_video_time_ms": 3000, "to_video_time_ms": 2500}},
+    {"event_type": "rewind", "video_time_ms": 2400, "client_monotonic_ms": 2520, "wall_time_ms": 1700000002520, "details": {"from_video_time_ms": 3000, "to_video_time_ms": 2400}},
+    {"event_type": "mute", "video_time_ms": 2600, "client_monotonic_ms": 2605, "wall_time_ms": 1700000002605},
+    {"event_type": "volume_change", "video_time_ms": 2600, "client_monotonic_ms": 2606, "wall_time_ms": 1700000002606, "details": {"from_volume": 1, "to_volume": 0}},
+    {"event_type": "unmute", "video_time_ms": 2800, "client_monotonic_ms": 2805, "wall_time_ms": 1700000002805},
+    {"event_type": "volume_change", "video_time_ms": 2800, "client_monotonic_ms": 2806, "wall_time_ms": 1700000002806, "details": {"from_volume": 0, "to_volume": 1}},
+    {"event_type": "fullscreen_enter", "video_time_ms": 3200, "client_monotonic_ms": 3205, "wall_time_ms": 1700000003205},
+    {"event_type": "fullscreen_exit", "video_time_ms": 3300, "client_monotonic_ms": 3305, "wall_time_ms": 1700000003305},
+    {"event_type": "visibility_hidden", "video_time_ms": 3400, "client_monotonic_ms": 3405, "wall_time_ms": 1700000003405},
+    {"event_type": "visibility_visible", "video_time_ms": 3450, "client_monotonic_ms": 3455, "wall_time_ms": 1700000003455},
+    {"event_type": "window_blur", "video_time_ms": 3500, "client_monotonic_ms": 3505, "wall_time_ms": 1700000003505},
+    {"event_type": "window_focus", "video_time_ms": 3550, "client_monotonic_ms": 3555, "wall_time_ms": 1700000003555},
+    {"event_type": "abandonment", "video_time_ms": 4100, "client_monotonic_ms": 4105, "wall_time_ms": 1700000004105, "details": {"reason": "user_ended_early", "last_video_time_ms": 4100}}
+  ]
+}

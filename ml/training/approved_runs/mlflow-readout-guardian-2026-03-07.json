@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0.0",
+  "training": {
+    "run_id": "mlflow-readout-guardian-2026-03-07",
+    "status": "completed",
+    "pipeline": "ml/training",
+    "model_family": "biotrace_baseline"
+  },
+  "approval": {
+    "status": "approved",
+    "approved_by": "neuroscience-review-board",
+    "approved_at": "2026-03-07T15:15:00Z"
+  },
+  "guardian": {
+    "allow_baseline_refresh": true,
+    "target_metrics": [
+      "attention_score",
+      "reward_proxy"
+    ]
+  }
+}
