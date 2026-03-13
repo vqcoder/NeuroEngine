@@ -23,7 +23,9 @@ import path from 'path';
 import { NextResponse } from 'next/server';
 import { isHttpUrl } from '@/lib/urlUtils';
 
+
 export const runtime = 'nodejs';
+export const maxDuration = 300;
 
 const DOWNLOAD_DIR = path.join(tmpdir(), 'watchlab-video-downloads');
 const YT_DLP_TIMEOUT_MS = Math.max(
