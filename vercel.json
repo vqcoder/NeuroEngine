@@ -4,13 +4,5 @@
   "installCommand": "npm install",
   "outputDirectory": "apps/watchlab/.next",
   "framework": "nextjs",
-  "regions": ["iad1"],
-  "functions": {
-    "apps/watchlab/app/api/video/download/route.ts": {
-      "maxDuration": 300
-    },
-    "apps/watchlab/app/api/video/resolve/route.ts": {
-      "maxDuration": 300
-    }
-  }
+  "regions": ["iad1"]
 }
