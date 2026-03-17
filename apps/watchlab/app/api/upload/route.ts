@@ -179,8 +179,10 @@ async function updateVideoSourceUrl(baseUrl: string, videoId: string, sourceUrl:
         'Video source URL update endpoint is unavailable on the configured biograph service; continuing without source URL sync.'
     };
   }
-  const body = await response.text();
-  throw new Error(`biograph video source update failed (${response.status}): ${body}`);
+  return {
+    forwarded: false as const,
+    warning: `Video source URL update failed (${response.status}); continuing without source URL sync.`
+  };
 }
 
 async function createSession(
