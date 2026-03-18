@@ -2,6 +2,7 @@
 
 import type { RefObject } from 'react';
 import type { QualityState, WebcamStatus } from '@/lib/studyTypes';
+import type { MicStatus } from '../hooks/useAudioReaction';
 
 export interface StudyCameraCheckProps {
   webcamVideoRef: RefObject<HTMLVideoElement | null>;
@@ -19,6 +20,11 @@ export interface StudyCameraCheckProps {
   playAudioCheckTone: () => void;
   setAudioConfirmed: (value: boolean) => void;
   onStartStudyVideo: () => void;
+  micEnabled: boolean;
+  micStatus: MicStatus;
+  micEnergyLevel: number;
+  onMicAllow: () => void;
+  onMicSkip: () => void;
 }
 
 export default function StudyCameraCheck({
@@ -36,7 +42,12 @@ export default function StudyCameraCheck({
   onContinueWithoutWebcam,
   playAudioCheckTone,
   setAudioConfirmed,
-  onStartStudyVideo
+  onStartStudyVideo,
+  micEnabled,
+  micStatus,
+  micEnergyLevel,
+  onMicAllow,
+  onMicSkip
 }: StudyCameraCheckProps) {
   const lightCheck = quality.brightnessOk
     ? 'check-pass'
@@ -157,6 +168,77 @@ export default function StudyCameraCheck({
                 ) : null}
               </div>
             </div>
+
+            {micEnabled && (
+              <div className={`camera-check-item ${
+                micStatus === 'granted' ? 'check-pass'
+                  : micStatus === 'denied' || micStatus === 'bypassed' ? 'check-idle'
+                  : 'check-warn'
+              }`}>
+                <div className="camera-check-dot" />
+                <div className="camera-check-content">
+                  <span className="camera-check-label">Microphone</span>
+                  {micStatus === 'idle' && (
+                    <div className="camera-check-audio">
+                      <button onClick={onMicAllow} className="camera-audio-btn">
+                        Allow
+                      </button>
+                      <button
+                        onClick={onMicSkip}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#94a3b8',
+                          cursor: 'pointer',
+                          textDecoration: 'underline',
+                          fontSize: '0.8rem',
+                          marginLeft: 8,
+                        }}
+                      >
+                        Skip
+                      </button>
+                      <span className="camera-check-status" style={{ display: 'block', marginTop: 2 }}>
+                        Optional &mdash; allow mic to capture reactions
+                      </span>
+                    </div>
+                  )}
+                  {micStatus === 'requesting' && (
+                    <span className="camera-check-status">Requesting access...</span>
+                  )}
+                  {micStatus === 'granted' && (
+                    <div style={{ marginTop: 4 }}>
+                      <div
+                        style={{
+                          width: '100%',
+                          height: 10,
+                          borderRadius: 5,
+                          background: '#334155',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: `${Math.min(micEnergyLevel * 100, 100)}%`,
+                            height: '100%',
+                            borderRadius: 5,
+                            background: 'linear-gradient(90deg, #22c55e, #4ade80)',
+                            transition: 'width 80ms ease-out',
+                          }}
+                        />
+                      </div>
+                      <span className="camera-check-status" style={{ display: 'block', marginTop: 2 }}>
+                        Say something to test
+                      </span>
+                    </div>
+                  )}
+                  {(micStatus === 'denied' || micStatus === 'bypassed') && (
+                    <span className="camera-check-status">
+                      Skipped &mdash; reactions won&apos;t be captured
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="camera-tips">
