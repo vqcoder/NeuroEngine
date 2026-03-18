@@ -92,44 +92,61 @@ def compute_au04_synchrony(
             bucket = (int(vt) // window_ms) * window_ms
             bins[bucket][session_idx].append(float(au04))
 
-    results: List[Dict[str, Any]] = []
+    # First pass: compute raw synchrony scores per bucket.
+    raw_windows: List[Dict[str, Any]] = []
     for bucket in sorted(bins.keys()):
         session_map = bins[bucket]
-        # Only consider buckets with 2+ sessions contributing
         sessions_with_data = {
             sid: vals for sid, vals in session_map.items() if len(vals) > 0
         }
         if len(sessions_with_data) < 2:
             continue
 
-        # Use the mean AU04 per session per bucket for correlation
         session_means = [sum(v) / len(v) for v in sessions_with_data.values()]
 
-        # For a single bucket, we can't compute temporal correlation.
-        # Instead, compute the coefficient of variation to measure agreement.
-        # When all sessions agree (low CV), synchrony is high.
         mean_val = sum(session_means) / len(session_means)
         if abs(mean_val) < 1e-9:
-            # All near-zero — sessions agree on no AU04 activation
             synchrony = 1.0 if all(abs(v) < 1e-6 for v in session_means) else 0.0
         else:
             variance = sum((v - mean_val) ** 2 for v in session_means) / len(session_means)
             cv = math.sqrt(variance) / abs(mean_val) if abs(mean_val) > 1e-9 else 0.0
-            # Map CV to synchrony: CV=0 → synchrony=1, CV≥2 → synchrony=0
             synchrony = max(0.0, min(1.0, 1.0 - cv / 2.0))
 
-        synchrony = round(synchrony, 6)
-        session_count = len(sessions_with_data)
-        is_peak = synchrony > 0.65 and session_count >= 2
-
-        results.append({
+        raw_windows.append({
             "video_time_ms": bucket,
-            "synchrony_score": synchrony,
-            "session_count": session_count,
-            "is_tension_peak": is_peak,
+            "synchrony_score": round(synchrony, 6),
+            "session_count": len(sessions_with_data),
         })
 
+    if not raw_windows:
+        return []
+
+    # Second pass: apply relative threshold for tension peak detection.
+    scores = [w["synchrony_score"] for w in raw_windows]
+    mean_score = sum(scores) / len(scores)
+    variance = sum((s - mean_score) ** 2 for s in scores) / len(scores)
+    std_score = math.sqrt(variance) if variance > 0 else 0.0
+    low_variance = std_score < 0.005
+
+    relative_threshold = mean_score + 1.5 * std_score
+
+    results: List[Dict[str, Any]] = []
+    for w in raw_windows:
+        is_peak = (
+            not low_variance
+            and w["synchrony_score"] > relative_threshold
+            and w["synchrony_score"] > 0.65
+            and w["session_count"] >= 2
+        )
+        results.append({**w, "is_tension_peak": is_peak})
+
     return results
+
+
+_LOW_VARIANCE_NOTE = (
+    "Insufficient signal variance for peak detection — "
+    "collect sessions from different participants for meaningful tension analysis"
+)
 
 
 def compute_narrative_tension_summary(
@@ -143,9 +160,16 @@ def compute_narrative_tension_summary(
             "mean_synchrony": None,
             "max_synchrony": None,
             "tension_peaks": [],
+            "low_variance": False,
+            "variance_note": None,
         }
 
     scores = [w["synchrony_score"] for w in synchrony_windows]
+    mean_score = sum(scores) / len(scores)
+    variance = sum((s - mean_score) ** 2 for s in scores) / len(scores)
+    std_score = math.sqrt(variance) if variance > 0 else 0.0
+    low_variance = std_score < 0.005
+
     peaks = sorted(
         [w for w in synchrony_windows if w.get("is_tension_peak")],
         key=lambda w: w["synchrony_score"],
@@ -154,7 +178,9 @@ def compute_narrative_tension_summary(
 
     return {
         "peak_count": len(peaks),
-        "mean_synchrony": round(sum(scores) / len(scores), 6),
+        "mean_synchrony": round(mean_score, 6),
         "max_synchrony": round(max(scores), 6),
         "tension_peaks": peaks,
+        "low_variance": low_variance,
+        "variance_note": _LOW_VARIANCE_NOTE if low_variance else None,
     }
