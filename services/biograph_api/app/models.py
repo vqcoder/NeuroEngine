@@ -245,6 +245,9 @@ class TracePoint(Base):
     quality_score: Mapped[Optional[float]] = mapped_column(Float)
     quality_confidence: Mapped[Optional[float]] = mapped_column(Float)
     tracking_confidence: Mapped[Optional[float]] = mapped_column(Float)
+    pupil_dilation_proxy: Mapped[Optional[float]] = mapped_column(Float)
+    pupil_dilation_proxy_raw: Mapped[Optional[float]] = mapped_column(Float)
+    pupil_baseline_normalised: Mapped[Optional[float]] = mapped_column(Float)
     quality_flags: Mapped[Optional[List[str]]] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
