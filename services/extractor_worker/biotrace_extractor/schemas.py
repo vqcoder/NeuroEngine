@@ -47,6 +47,9 @@ class OutputRow(TypedDict):
     quality_confidence: float
     tracking_confidence: float
     quality_flags: Sequence[str]
+    pupil_dilation_proxy: Optional[float]
+    pupil_dilation_proxy_raw: Optional[float]
+    pupil_baseline_normalised: Optional[float]
     au: Dict[str, float]
     au_norm: Dict[str, float]
     head_pose: HeadPose
