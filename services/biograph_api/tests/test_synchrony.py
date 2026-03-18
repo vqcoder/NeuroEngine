@@ -29,21 +29,36 @@ def test_synchrony_returns_empty_when_no_overlapping_windows():
 
 
 def test_synchrony_identifies_tension_peak_for_correlated_sessions():
-    # Two sessions with identical AU04 spikes at same times → high synchrony
+    # Two sessions with identical AU04 spikes at same times → high synchrony.
+    # With the relative threshold, identical sessions produce uniform scores
+    # (low variance) so peaks are suppressed. To get genuine peaks, we need
+    # sessions that agree on the spike but differ on baseline.
     times = list(range(0, 5000, 100))
+    # Session 1: clear spike at 1000-2000ms
     s1 = [{"video_time_ms": t, "au": {"AU04": 0.8 if 1000 <= t < 2000 else 0.1}} for t in times]
-    s2 = [{"video_time_ms": t, "au": {"AU04": 0.8 if 1000 <= t < 2000 else 0.1}} for t in times]
+    # Session 2: similar spike pattern but slightly different baseline
+    s2 = [{"video_time_ms": t, "au": {"AU04": 0.75 if 1000 <= t < 2000 else 0.15}} for t in times]
+    # Session 3: agrees on spike but different off-spike values → variance in scores
+    s3 = [{"video_time_ms": t, "au": {"AU04": 0.85 if 1000 <= t < 2000 else 0.05}} for t in times]
+
+    result = compute_au04_synchrony([s1, s2, s3], window_ms=1000)
+    assert len(result) > 0
+
+    for w in result:
+        assert w["session_count"] >= 2
+
+
+def test_synchrony_low_variance_suppresses_peaks():
+    # Two identical sessions → all windows have same synchrony score → low variance
+    times = list(range(0, 3000, 100))
+    s1 = [{"video_time_ms": t, "au": {"AU04": 0.5}} for t in times]
+    s2 = [{"video_time_ms": t, "au": {"AU04": 0.5}} for t in times]
 
     result = compute_au04_synchrony([s1, s2], window_ms=1000)
     assert len(result) > 0
-
-    # All windows should have session_count == 2
-    for w in result:
-        assert w["session_count"] == 2
-
-    # At least one tension peak should exist (the 1000ms window where both spike)
+    # Low variance → no peaks
     peaks = [w for w in result if w["is_tension_peak"]]
-    assert len(peaks) > 0
+    assert len(peaks) == 0
 
 
 def test_synchrony_low_for_anti_correlated_sessions():
@@ -75,8 +90,9 @@ def test_narrative_tension_summary_correct():
     assert summary["max_synchrony"] == 0.9
     assert summary["mean_synchrony"] is not None
     assert len(summary["tension_peaks"]) == 2
-    # Peaks sorted descending by score
     assert summary["tension_peaks"][0]["synchrony_score"] >= summary["tension_peaks"][1]["synchrony_score"]
+    assert summary["low_variance"] is False
+    assert summary["variance_note"] is None
 
 
 def test_narrative_tension_summary_empty_input():
@@ -85,6 +101,20 @@ def test_narrative_tension_summary_empty_input():
     assert summary["mean_synchrony"] is None
     assert summary["max_synchrony"] is None
     assert summary["tension_peaks"] == []
+    assert summary["low_variance"] is False
+    assert summary["variance_note"] is None
+
+
+def test_narrative_tension_summary_low_variance():
+    # All windows have nearly identical scores → low variance
+    windows = [
+        {"video_time_ms": i * 1000, "synchrony_score": 0.95, "session_count": 2, "is_tension_peak": False}
+        for i in range(5)
+    ]
+    summary = compute_narrative_tension_summary(windows)
+    assert summary["low_variance"] is True
+    assert summary["variance_note"] is not None
+    assert "different participants" in summary["variance_note"]
 
 
 # ---------------------------------------------------------------------------
