@@ -1,5 +1,6 @@
 'use client';
 
+import { useRef } from 'react';
 import type { RefObject } from 'react';
 import type { QualityState, WebcamStatus } from '@/lib/studyTypes';
 import type { MicStatus } from '../hooks/useAudioReaction';
@@ -61,6 +62,13 @@ export default function StudyCameraCheck({
       : 'check-idle';
   const fpsCheck = quality.fpsOk ? 'check-pass' : webcamStatus === 'granted' ? 'check-warn' : 'check-idle';
   const audioCheck = audioConfirmed ? 'check-pass' : 'check-idle';
+
+  const micConfirmedRef = useRef(false);
+  if (micStatus === 'granted' && micEnergyLevel > 0.1) {
+    micConfirmedRef.current = true;
+  }
+  const micConfirmed = micConfirmedRef.current;
+
   const badgeClass = quality.pass ? 'badge-pass' : webcamStatus === 'granted' ? 'badge-checking' : 'badge-waiting';
   const badgeLabel = quality.pass ? '\u25cf QUALITY PASS' : webcamStatus === 'granted' ? '\u25cf Checking...' : '\u25cf Waiting for camera';
 
@@ -205,7 +213,7 @@ export default function StudyCameraCheck({
                   {micStatus === 'requesting' && (
                     <span className="camera-check-status">Requesting access...</span>
                   )}
-                  {micStatus === 'granted' && (
+                  {micStatus === 'granted' && !micConfirmed && (
                     <div style={{ marginTop: 4 }}>
                       <div
                         style={{
@@ -230,6 +238,11 @@ export default function StudyCameraCheck({
                         Say something to test
                       </span>
                     </div>
+                  )}
+                  {micStatus === 'granted' && micConfirmed && (
+                    <span className="camera-check-status" style={{ color: '#22c55e' }}>
+                      &#10003; Microphone ready
+                    </span>
                   )}
                   {(micStatus === 'denied' || micStatus === 'bypassed') && (
                     <span className="camera-check-status">
