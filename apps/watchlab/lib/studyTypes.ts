@@ -10,11 +10,12 @@ export type StudyConfig = {
   originalVideoUrl?: string | null;
   dialEnabled: boolean;
   requireWebcam: boolean;
+  micEnabled: boolean;
 };
 
 export type FrontendDiagnosticSeverity = 'info' | 'warning' | 'error';
 
-export type StudyStage = 'onboarding' | 'camera' | 'watch' | 'annotation' | 'survey' | 'next_video' | 'complete';
+export type StudyStage = 'onboarding' | 'camera' | 'mic_check' | 'watch' | 'annotation' | 'survey' | 'next_video' | 'complete';
 
 export type WebcamStatus = 'idle' | 'requesting' | 'granted' | 'denied';
 
@@ -147,5 +148,6 @@ export const emptyConfig: StudyConfig = {
   videoUrl: '',
   originalVideoUrl: null,
   dialEnabled: false,
-  requireWebcam: false
+  requireWebcam: false,
+  micEnabled: false
 };

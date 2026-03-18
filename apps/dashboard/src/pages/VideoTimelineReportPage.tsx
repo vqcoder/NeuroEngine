@@ -68,6 +68,9 @@ const toTelemetryOverlayKind = (
   if (ABANDONMENT_EVENT_TYPES.has(normalized)) {
     return 'abandonment';
   }
+  if (normalized === 'audio_reaction') {
+    return 'audio_reaction';
+  }
   return null;
 };
 

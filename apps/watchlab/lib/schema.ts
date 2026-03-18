@@ -48,7 +48,11 @@ export const timelineEventSchema = z.object({
     'session_incomplete',
     'finish_clicked',
     'upload_success',
-    'upload_failed'
+    'upload_failed',
+    'mic_granted',
+    'mic_denied',
+    'mic_bypassed',
+    'audio_reaction'
   ]),
   sessionId: z.string().uuid(),
   videoId: z.string().min(1),

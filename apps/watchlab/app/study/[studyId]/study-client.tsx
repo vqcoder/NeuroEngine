@@ -43,12 +43,14 @@ import {
 import { buildSurveyAnalyticsHighlights } from '@/lib/surveyAnalytics';
 import StudyOnboarding from './components/StudyOnboarding';
 import StudyCameraCheck from './components/StudyCameraCheck';
+import StudyMicCheck from './components/StudyMicCheck';
 import StudyAnnotation from './components/StudyAnnotation';
 import StudySurvey from './components/StudySurvey';
 import StudyCompletion from './components/StudyCompletion';
 import { useTimeline } from './hooks/useTimeline';
 import { useWebcam } from './hooks/useWebcam';
 import { useSessionUpload } from './hooks/useSessionUpload';
+import { useAudioReaction } from './hooks/useAudioReaction';
 
 
 export default function StudyClient({ studyId }: { studyId: string }) {
@@ -191,6 +193,12 @@ export default function StudyClient({ studyId }: { studyId: string }) {
     setStage,
     setNextVideoChoice,
   });
+
+  // ── Hook: useAudioReaction ──────────────────────────────────────────────
+  const {
+    micStatus, audioReactionCount,
+    startMicCapture, stopMicCapture, bypassMic,
+  } = useAudioReaction();
 
   const reportDiagnostic = ({
     eventType,
@@ -787,7 +795,8 @@ export default function StudyClient({ studyId }: { studyId: string }) {
             videoUrl: nextVideoUrl,
             originalVideoUrl: nextOriginalVideoUrl,
             dialEnabled: payload.dialEnabled ?? false,
-            requireWebcam: payload.requireWebcam ?? false
+            requireWebcam: payload.requireWebcam ?? false,
+            micEnabled: payload.micEnabled ?? false
           });
 
         }
@@ -889,6 +898,7 @@ export default function StudyClient({ studyId }: { studyId: string }) {
   useEffect(() => {
     return () => {
       stopWebcam();
+      stopMicCapture();
       stopDialSampling();
       destroyHlsPlayer();
     };
@@ -1048,7 +1058,7 @@ export default function StudyClient({ studyId }: { studyId: string }) {
     setAudioCheckPlayed(true);
   };
 
-  const onStartStudyVideo = () => {
+  const beginWatchStage = () => {
     setStage('watch');
     setVideoError(null);
     setAnnotationSkipped(false);
@@ -1087,6 +1097,24 @@ export default function StudyClient({ studyId }: { studyId: string }) {
           );
         });
     }, 0);
+  };
+
+  const onStartStudyVideo = () => {
+    if (config.micEnabled) {
+      setStage('mic_check');
+    } else {
+      beginWatchStage();
+    }
+  };
+
+  const onMicAllow = async () => {
+    await startMicCapture(appendEvent);
+    beginWatchStage();
+  };
+
+  const onMicSkip = () => {
+    bypassMic(appendEvent);
+    beginWatchStage();
   };
 
   useEffect(() => {
@@ -1226,6 +1254,7 @@ export default function StudyClient({ studyId }: { studyId: string }) {
 
   const toSurveyStage = () => {
     setIsPlaying(false);
+    stopMicCapture();
     // Ensure videoCompleted is set — the user has progressed past the video
     // stage (either via onEnded or annotation skip/continue) so the survey
     // submit button must be enabled once scores are entered.
@@ -1621,6 +1650,16 @@ export default function StudyClient({ studyId }: { studyId: string }) {
         playAudioCheckTone={playAudioCheckTone}
         setAudioConfirmed={setAudioConfirmed}
         onStartStudyVideo={onStartStudyVideo}
+      />
+    );
+  }
+
+  if (stage === 'mic_check') {
+    return (
+      <StudyMicCheck
+        onAllow={onMicAllow}
+        onSkip={onMicSkip}
+        micStatus={micStatus}
       />
     );
   }
