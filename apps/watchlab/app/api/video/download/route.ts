@@ -23,9 +23,7 @@ import path from 'path';
 import { NextResponse } from 'next/server';
 import { isHttpUrl } from '@/lib/urlUtils';
 
-
 export const runtime = 'nodejs';
-export const maxDuration = 300;
 
 const DOWNLOAD_DIR = path.join(tmpdir(), 'watchlab-video-downloads');
 const YT_DLP_TIMEOUT_MS = Math.max(
@@ -216,13 +214,16 @@ export async function POST(request: Request) {
   const tmpBase = `dl-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const tmpTemplate = path.join(DOWNLOAD_DIR, `${tmpBase}.%(ext)s`);
 
-  const args = [
+  const baseArgs = [
     '--no-playlist',
     '--format', 'best[ext=mp4]/best',
     '--merge-output-format', 'mp4',
     '--output', tmpTemplate,
-    // Use Node.js as the JS runtime for YouTube extraction (yt-dlp 2024+)
-    '--js-runtimes', 'nodejs',
+    // Use Node.js as the JS runtime for YouTube extraction (yt-dlp 2025+)
+    // Runtime name must be "node" not "nodejs" per yt-dlp docs.
+    '--js-runtimes', 'node',
+    // Enable remote EJS challenge solver for YouTube's n-parameter decoding.
+    '--remote-components', 'ejs:github',
   ];
 
   // YouTube cookie support — same env var as biograph_api
@@ -232,22 +233,16 @@ export async function POST(request: Request) {
     cookiesPath = path.join(tmpdir(), 'yt-cookies-watchlab.txt');
     const { writeFileSync } = await import('fs');
     writeFileSync(cookiesPath, cookiesContent.endsWith('\n') ? cookiesContent : cookiesContent + '\n');
-    args.push('--cookies', cookiesPath);
   }
 
   // Residential proxy support — same env var as biograph_api
   const proxyUrl = (process.env.YTDLP_PROXY ?? '').trim();
-  if (proxyUrl) {
-    args.push('--proxy', proxyUrl);
-  }
 
-  // URL must be the last argument
-  args.push(rawUrl);
-
-  let downloadedPath: string | null = null;
-
-  try {
-    await new Promise<void>((resolve, reject) => {
+  /**
+   * Run yt-dlp with the given args. Returns the stderr output on failure.
+   */
+  const runYtDlp = (args: string[]): Promise<{ ok: boolean; stderr: string }> =>
+    new Promise((resolve) => {
       const child = spawn('yt-dlp', args, { stdio: ['ignore', 'pipe', 'pipe'] });
       let stderr = '';
       let timedOut = false;
@@ -261,26 +256,86 @@ export async function POST(request: Request) {
         clearTimeout(timeoutId);
         const maybeEnoent = error as NodeJS.ErrnoException;
         if (maybeEnoent?.code === 'ENOENT') {
-          reject(new Error('yt-dlp is not installed on this server.'));
+          resolve({ ok: false, stderr: 'yt-dlp is not installed on this server.' });
           return;
         }
-        reject(error);
+        resolve({ ok: false, stderr: error.message });
       });
       child.on('close', (code) => {
         clearTimeout(timeoutId);
-        if (timedOut) { reject(new Error('Download timed out.')); return; }
-        if (code !== 0) { reject(new Error(stderr.trim() || `yt-dlp exited with status ${code}`)); return; }
-        resolve();
+        if (timedOut) { resolve({ ok: false, stderr: 'Download timed out.' }); return; }
+        if (code !== 0) { resolve({ ok: false, stderr: stderr.trim() || `yt-dlp exited with status ${code}` }); return; }
+        resolve({ ok: true, stderr });
       });
     });
 
+  const findDownloadedFile = async (): Promise<string | null> => {
     for (const ext of ['mp4', 'webm', 'mkv', 'mov', 'm4v']) {
       const candidate = path.join(DOWNLOAD_DIR, `${tmpBase}.${ext}`);
       try {
         const s = await stat(candidate);
-        if (s.isFile() && s.size > 0) { downloadedPath = candidate; break; }
+        if (s.isFile() && s.size > 0) return candidate;
       } catch { /* try next */ }
     }
+    return null;
+  };
+
+  let downloadedPath: string | null = null;
+
+  try {
+    // Build args with optional cookies and proxy.
+    const buildArgs = (opts: { useCookies: boolean; useProxy: boolean }): string[] => {
+      const args = [...baseArgs];
+      if (opts.useCookies && cookiesPath) args.push('--cookies', cookiesPath);
+      if (opts.useProxy && proxyUrl) args.push('--proxy', proxyUrl);
+      args.push(rawUrl);
+      return args;
+    };
+
+    const cleanPartial = async () => {
+      const partial = await findDownloadedFile();
+      if (partial) await unlink(partial).catch(() => undefined);
+    };
+
+    // Attempt 1: cookies + proxy (full features)
+    let result = await runYtDlp(buildArgs({ useCookies: !!cookiesPath, useProxy: !!proxyUrl }));
+
+    // Attempt 2: If proxy caused SSL/connection error, retry WITHOUT proxy.
+    // Residential proxies can drop long-lived video download streams.
+    if (!result.ok && proxyUrl) {
+      const lowerErr = result.stderr.toLowerCase();
+      if (
+        lowerErr.includes('ssl') ||
+        lowerErr.includes('unexpected_eof') ||
+        lowerErr.includes('connection reset') ||
+        lowerErr.includes('timed out') ||
+        lowerErr.includes('urlopen error')
+      ) {
+        await cleanPartial();
+        console.log('[video/download] Retrying WITHOUT proxy after SSL/connection error:', result.stderr.slice(0, 200));
+        result = await runYtDlp(buildArgs({ useCookies: !!cookiesPath, useProxy: false }));
+      }
+    }
+
+    // Attempt 3: If cookies caused the error, retry without cookies (keep proxy off if it was already dropped).
+    if (!result.ok && cookiesPath) {
+      const lowerErr = result.stderr.toLowerCase();
+      if (
+        lowerErr.includes('cookies') ||
+        lowerErr.includes('sign in') ||
+        lowerErr.includes('not available')
+      ) {
+        await cleanPartial();
+        console.log('[video/download] Retrying without cookies after failure:', result.stderr.slice(0, 200));
+        result = await runYtDlp(buildArgs({ useCookies: false, useProxy: false }));
+      }
+    }
+
+    if (!result.ok) {
+      throw new Error(result.stderr);
+    }
+
+    downloadedPath = await findDownloadedFile();
 
     if (!downloadedPath) {
       return NextResponse.json({ error: 'Download completed but output file was not found.' }, { status: 500 });

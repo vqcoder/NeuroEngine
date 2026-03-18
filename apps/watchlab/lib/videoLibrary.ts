@@ -192,6 +192,14 @@ export const DEFAULT_VIDEO_LIBRARY: VideoLibraryItem[] = [
     title: 'Countdown',
     videoUrl: `${VIDEO_PROXY_PATH}/countdown.mp4`,
     createdAt: '2026-03-01T00:00:00.000Z'
+  },
+  {
+    id: 'default-dunkin',
+    studyId: 'dunkin-donuts',
+    title: 'Dunkin Donuts',
+    videoUrl: `${VIDEO_PROXY_PATH}/dunkin-donuts.mp4`,
+    originalUrl: 'https://www.youtube.com/watch?v=x3wI8j-z3Iw',
+    createdAt: '2026-03-11T00:00:00.000Z'
   }
 ];
 

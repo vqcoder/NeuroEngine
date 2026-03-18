@@ -80,7 +80,7 @@ function AppHeader() {
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
         <Box
           component="a"
-          href={import.meta.env.VITE_WATCHLAB_URL ? `${import.meta.env.VITE_WATCHLAB_URL}/upload` : 'https://poetic-nature-production.up.railway.app/upload'}
+          href={import.meta.env.VITE_WATCHLAB_URL ? `${import.meta.env.VITE_WATCHLAB_URL}/upload` : 'https://lab.alpha-engine.ai/upload'}
           target="_blank"
           rel="noopener noreferrer"
           sx={NAV_LINK_SX}

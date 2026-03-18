@@ -8,7 +8,6 @@ import { NextResponse } from 'next/server';
 import { isHttpUrl } from '@/lib/urlUtils';
 
 export const runtime = 'nodejs';
-export const maxDuration = 300;
 
 // ---------------------------------------------------------------------------
 // SSRF protection — block requests to private/internal IP ranges.

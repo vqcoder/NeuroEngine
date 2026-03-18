@@ -5,6 +5,7 @@ export interface StudySurveyProps {
   surveyContentClarity: string;
   surveyAdditionalComments: string;
   canFinishSession: boolean;
+  uploadStatus: string;
   setSurveyOverallEngagement: (value: string) => void;
   setSurveyContentClarity: (value: string) => void;
   setSurveyAdditionalComments: (value: string) => void;
@@ -16,6 +17,7 @@ export default function StudySurvey({
   surveyContentClarity,
   surveyAdditionalComments,
   canFinishSession,
+  uploadStatus,
   setSurveyOverallEngagement,
   setSurveyContentClarity,
   setSurveyAdditionalComments,
@@ -112,13 +114,18 @@ export default function StudySurvey({
         className="survey-submit-btn"
         onClick={finishAndUpload}
         data-testid="finish-button"
-        disabled={!canFinishSession}
+        disabled={!canFinishSession || uploadStatus === 'Uploading...'}
       >
-        Submit &amp; Finish
+        {uploadStatus === 'Uploading...' ? 'Uploading…' : 'Submit & Finish'}
       </button>
       {!canFinishSession ? (
         <p className="survey-validation-hint">
           Please rate both questions to continue.
+        </p>
+      ) : null}
+      {uploadStatus && uploadStatus !== 'Uploading...' ? (
+        <p className="survey-validation-hint" style={{ color: uploadStatus.startsWith('Upload complete') ? 'var(--ok)' : 'var(--bad)' }} data-testid="survey-upload-status">
+          {uploadStatus}
         </p>
       ) : null}
     </section>

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   DEFAULT_VIDEO_LIBRARY,
   buildStudyHref,
@@ -12,6 +12,74 @@ import {
   type VideoLibraryItem
 } from '@/lib/videoLibrary';
 
+type UploadStep = 'idle' | 'queued' | 'downloading' | 'uploading' | 'complete' | 'error';
+
+const UPLOAD_STEPS: { key: Exclude<UploadStep, 'idle'>; label: string }[] = [
+  { key: 'queued', label: 'Queued' },
+  { key: 'downloading', label: 'Downloading' },
+  { key: 'uploading', label: 'Uploading' },
+  { key: 'complete', label: 'Complete' }
+];
+
+function UploadProgress({ step, elapsedSec, errorMessage }: { step: UploadStep; elapsedSec: number; errorMessage?: string }) {
+  if (step === 'idle') return null;
+
+  const activeIndex = step === 'error'
+    ? -1
+    : UPLOAD_STEPS.findIndex((s) => s.key === step);
+
+  return (
+    <div className="upload-progress" data-testid="upload-progress">
+      <div className="upload-steps-row">
+        {UPLOAD_STEPS.map((s, i) => {
+          const isDone = activeIndex > i;
+          const isActive = activeIndex === i && step !== 'error';
+          const isError = step === 'error';
+          return (
+            <div key={s.key} className="upload-step-item">
+              <div
+                className={[
+                  'upload-step-circle',
+                  isDone ? 'done' : '',
+                  isActive ? 'active' : '',
+                  isError ? 'error' : ''
+                ].filter(Boolean).join(' ')}
+              >
+                {isDone ? '✓' : i + 1}
+              </div>
+              {i < UPLOAD_STEPS.length - 1 && (
+                <div className={`upload-step-line ${isDone ? 'done' : ''}`} />
+              )}
+              <span
+                className={[
+                  'upload-step-label',
+                  isActive ? 'active' : '',
+                  isDone ? 'done' : ''
+                ].filter(Boolean).join(' ')}
+              >
+                {s.label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <p className="upload-progress-status">
+        {step === 'error' ? (
+          <span className="status-bad">{errorMessage ?? 'Upload failed'}</span>
+        ) : step === 'complete' ? (
+          <span className="status-good">Done!</span>
+        ) : (
+          <>
+            {step === 'queued' && 'Starting download…'}
+            {step === 'downloading' && `Downloading video… (${elapsedSec}s)`}
+            {step === 'uploading' && `Uploading to cloud… (${elapsedSec}s)`}
+          </>
+        )}
+      </p>
+    </div>
+  );
+}
+
 export default function UploadPage() {
   const [videoUrl, setVideoUrl] = useState('');
   const [title, setTitle] = useState('');
@@ -21,6 +89,32 @@ export default function UploadPage() {
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
   const [hostingId, setHostingId] = useState<string | null>(null);
   const [items, setItems] = useState<VideoLibraryItem[]>([]);
+
+  // --- Upload progress bar state ---
+  const [uploadStep, setUploadStep] = useState<UploadStep>('idle');
+  const [uploadElapsed, setUploadElapsed] = useState(0);
+  const [uploadError, setUploadError] = useState<string | undefined>();
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startTimeRef = useRef<number>(0);
+
+  const startProgressTimer = useCallback(() => {
+    startTimeRef.current = Date.now();
+    setUploadElapsed(0);
+    timerRef.current = setInterval(() => {
+      setUploadElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000));
+    }, 500);
+  }, []);
+
+  const stopProgressTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => stopProgressTimer();
+  }, [stopProgressTimer]);
 
   useEffect(() => {
     setItems(readVideoLibrary(typeof window !== 'undefined' ? window.localStorage : null));
@@ -76,14 +170,37 @@ export default function UploadPage() {
       return;
     }
 
+    // --- Start progress bar ---
     setIsResolvingVideoUrl(true);
     setError(null);
+    setUploadError(undefined);
+    setUploadStep('queued');
+    startProgressTimer();
+
+    // Advance to "downloading" after a brief moment
+    const advanceTimer = setTimeout(() => setUploadStep('downloading'), 800);
+
+    // Advance to "uploading" after ~25s (estimated download time)
+    const uploadTimer = setTimeout(() => setUploadStep('uploading'), 25_000);
+
     try {
       const hosted = await hostVideoAsset(trimmedUrl, title.trim() || 'study-video');
+
+      clearTimeout(advanceTimer);
+      clearTimeout(uploadTimer);
+
       const existingUrl = items.find((entry) => entry.videoUrl === hosted.hostedUrl);
       if (existingUrl) {
         throw new Error('This video URL is already in your library.');
       }
+
+      // Flash "uploading" briefly if it was still downloading, then complete
+      if (uploadStep !== 'uploading') {
+        setUploadStep('uploading');
+      }
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      setUploadStep('complete');
+      stopProgressTimer();
 
       const nextItem = makeVideoLibraryItem(
         { title: title.trim(), videoUrl: hosted.hostedUrl, originalUrl: trimmedUrl },
@@ -98,12 +215,19 @@ export default function UploadPage() {
           ? `Added existing hosted asset: ${nextItem.title}`
           : `Added and hosted in cloud: ${nextItem.title}`
       );
+
+      // Auto-hide progress bar after a few seconds
+      setTimeout(() => setUploadStep('idle'), 4000);
     } catch (resolveError) {
-      setError(
-        resolveError instanceof Error
-          ? resolveError.message
-          : 'Unable to host this source URL in GitHub.'
-      );
+      clearTimeout(advanceTimer);
+      clearTimeout(uploadTimer);
+      stopProgressTimer();
+      const msg = resolveError instanceof Error
+        ? resolveError.message
+        : 'Unable to host this source URL.';
+      setUploadStep('error');
+      setUploadError(msg);
+      setError(msg);
     } finally {
       setIsResolvingVideoUrl(false);
     }
@@ -236,7 +360,9 @@ export default function UploadPage() {
               </Link>
             </div>
 
-            {error ? <p className="status-bad">{error}</p> : null}
+            <UploadProgress step={uploadStep} elapsedSec={uploadElapsed} errorMessage={uploadError} />
+
+            {error && uploadStep !== 'error' ? <p className="status-bad">{error}</p> : null}
             {notice ? (
               <p className="status-good" data-testid="upload-add-notice">
                 {notice}

@@ -628,7 +628,8 @@ def _resolve_predict_video_source_with_yt_dlp(video_url: str) -> Optional[str]:
         "--get-url",
         "--format",
         "best[ext=mp4]/best",
-        "--js-runtimes", "nodejs",
+        "--js-runtimes", "node",
+        "--remote-components", "ejs:github",
         safe_url,
     ]
     hostname = (urlparse(safe_url).hostname or "").lower()
@@ -654,9 +655,13 @@ def _resolve_predict_video_source_with_yt_dlp(video_url: str) -> Optional[str]:
         except FileNotFoundError:
             return None
 
-    result = _run(["yt-dlp", *command])
-    if result is None:
-        result = _run([sys.executable, "-m", "yt_dlp", *command])
+    def _exec_yt_dlp(cmd: list[str]) -> Optional[subprocess.CompletedProcess[str]]:
+        r = _run(["yt-dlp", *cmd])
+        if r is None:
+            r = _run([sys.executable, "-m", "yt_dlp", *cmd])
+        return r
+
+    result = _exec_yt_dlp(command)
     try:
         if result is None:
             raise FileNotFoundError("yt-dlp executable and module launcher not found")
@@ -667,11 +672,24 @@ def _resolve_predict_video_source_with_yt_dlp(video_url: str) -> Optional[str]:
         logger.warning("yt-dlp timed out while resolving predictor URL", extra={"video_url": safe_url})
         return None
 
+    # Retry without proxy on SSL/connection errors — residential proxies can
+    # drop long-lived streams causing SSL: UNEXPECTED_EOF_WHILE_READING.
+    if result.returncode != 0 and _YTDLP_PROXY:
+        stderr_lower = (result.stderr or "").lower()
+        if any(tok in stderr_lower for tok in ("ssl", "unexpected_eof", "connection reset", "timed out", "urlopen error")):
+            logger.info("Retrying yt-dlp resolve WITHOUT proxy after SSL/connection error")
+            no_proxy_cmd = [arg for arg in command if arg != "--proxy" and arg != _YTDLP_PROXY]
+            result = _exec_yt_dlp(no_proxy_cmd)
+            if result is None:
+                return None
+
     if result.returncode != 0:
         stderr = (result.stderr or "").strip()
-        logger.info(
-            "yt-dlp failed to resolve predictor URL",
-            extra={"video_url": safe_url, "stderr": stderr[:500]},
+        logger.warning(
+            "yt-dlp failed to resolve predictor URL (rc=%d): %s",
+            result.returncode,
+            stderr[:500],
+            extra={"video_url": safe_url, "stderr": stderr[:800]},
         )
         return None
 
@@ -692,7 +710,8 @@ def _download_predict_video_with_yt_dlp(video_url: str) -> Optional[Path]:
         "--no-progress",
         "--format",
         "best[ext=mp4]/best",
-        "--js-runtimes", "nodejs",
+        "--js-runtimes", "node",
+        "--remote-components", "ejs:github",
         "-o",
         output_template,
         safe_url,
@@ -725,10 +744,15 @@ def _download_predict_video_with_yt_dlp(video_url: str) -> Optional[Path]:
             return None
 
     timeout_seconds = max(_PREDICT_YTDLP_TIMEOUT_SECONDS * 4, 45)
+
+    def _exec_dl(cmd: list[str]) -> Optional[subprocess.CompletedProcess[str]]:
+        r = _run(["yt-dlp", *cmd], timeout_seconds=timeout_seconds)
+        if r is None:
+            r = _run([sys.executable, "-m", "yt_dlp", *cmd], timeout_seconds=timeout_seconds)
+        return r
+
     try:
-        result = _run(["yt-dlp", *command], timeout_seconds=timeout_seconds)
-        if result is None:
-            result = _run([sys.executable, "-m", "yt_dlp", *command], timeout_seconds=timeout_seconds)
+        result = _exec_dl(command)
         if result is None:
             raise FileNotFoundError("yt-dlp executable and module launcher not found")
     except FileNotFoundError:
@@ -740,11 +764,33 @@ def _download_predict_video_with_yt_dlp(video_url: str) -> Optional[Path]:
         shutil.rmtree(workdir, ignore_errors=True)
         return None
 
+    # Retry without proxy on SSL/connection errors — residential proxies can
+    # drop long-lived video download streams causing SSL: UNEXPECTED_EOF_WHILE_READING.
+    if result.returncode != 0 and _YTDLP_PROXY:
+        stderr_lower = (result.stderr or "").lower()
+        if any(tok in stderr_lower for tok in ("ssl", "unexpected_eof", "connection reset", "timed out", "urlopen error")):
+            logger.info("Retrying yt-dlp download WITHOUT proxy after SSL/connection error")
+            no_proxy_cmd = [arg for arg in command if arg != "--proxy" and arg != _YTDLP_PROXY]
+            # Clean partial download before retry
+            for partial in workdir.glob("*"):
+                partial.unlink(missing_ok=True)
+            try:
+                result = _exec_dl(no_proxy_cmd)
+                if result is None:
+                    shutil.rmtree(workdir, ignore_errors=True)
+                    return None
+            except subprocess.TimeoutExpired:
+                logger.warning("yt-dlp timed out on retry without proxy", extra={"video_url": safe_url})
+                shutil.rmtree(workdir, ignore_errors=True)
+                return None
+
     if result.returncode != 0:
         stderr = (result.stderr or "").strip()
-        logger.info(
-            "yt-dlp direct download fallback failed",
-            extra={"video_url": safe_url, "stderr": stderr[:500]},
+        logger.warning(
+            "yt-dlp direct download fallback failed (rc=%d): %s",
+            result.returncode,
+            stderr[:500],
+            extra={"video_url": safe_url, "stderr": stderr[:800]},
         )
         shutil.rmtree(workdir, ignore_errors=True)
         if "429" in stderr or "too many requests" in stderr.lower():

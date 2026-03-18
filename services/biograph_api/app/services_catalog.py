@@ -94,9 +94,29 @@ def list_video_catalog(db: Session, limit: int = 50) -> VideoCatalogResponse:
     ).all()
     latest_trace_by_video = {video_id: latest for video_id, latest in latest_trace_rows}
 
+    # Count trace points per video so we can hide recordings with no real data.
+    _MIN_TRACE_POINTS_FOR_CATALOG = 10
+    trace_count_rows = db.execute(
+        select(SessionModel.video_id, func.count(TracePoint.id))
+        .join(TracePoint, TracePoint.session_id == SessionModel.id)
+        .where(SessionModel.video_id.in_(ordered_video_ids))
+        .group_by(SessionModel.video_id)
+    ).all()
+    trace_counts_by_video: Dict[UUID, int] = {
+        video_id: count for video_id, count in trace_count_rows
+    }
+
     items: List[VideoCatalogItem] = []
     for video, study_name in video_rows:
         video_sessions = sessions_by_video.get(video.id, [])
+        if not video_sessions:
+            # Skip orphaned videos with zero sessions — these are artifacts of
+            # failed uploads, duplicate creation, or abandoned recording flows.
+            continue
+        if trace_counts_by_video.get(video.id, 0) < _MIN_TRACE_POINTS_FOR_CATALOG:
+            # Skip videos whose sessions have insufficient trace data — these
+            # are abandoned or broken recordings that produce empty timelines.
+            continue
         last_session = video_sessions[0] if video_sessions else None
         participant_ids = {session.participant_id for session in video_sessions}
         completed_sessions = sum(1 for session in video_sessions if session.status == "completed")
