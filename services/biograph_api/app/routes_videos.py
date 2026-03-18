@@ -38,65 +38,6 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-def _build_video_read(video: Video, db: Session) -> VideoRead:
-    """Build a VideoRead response by explicitly loading scene graph relationships.
-
-    Avoids SQLAlchemy lazy-loading failures after db.commit() by using
-    get_video_scene_graph() which performs an explicit query rather than
-    relying on ORM relationship attribute access.
-    """
-    scene_graph = get_video_scene_graph(db, video.id)
-    return VideoRead(
-        id=video.id,
-        study_id=video.study_id,
-        title=video.title,
-        source_url=video.source_url,
-        duration_ms=video.duration_ms,
-        variant_id=scene_graph.variant_id if scene_graph else None,
-        metadata=video.video_metadata,
-        scene_boundaries=video.scene_boundaries,
-        scenes=[
-            {
-                "scene_id": scene.scene_id or f"scene-{scene.scene_index + 1}",
-                "scene_index": scene.scene_index,
-                "start_ms": scene.start_ms,
-                "end_ms": scene.end_ms,
-                "label": scene.label,
-                "thumbnail_url": scene.thumbnail_url,
-                "cut_id": scene.cut_id,
-                "cta_id": scene.cta_id,
-            }
-            for scene in (scene_graph.scenes if scene_graph else [])
-        ],
-        cuts=[
-            {
-                "cut_id": cut.cut_id,
-                "video_time_ms": cut.start_ms,
-                "scene_id": cut.scene_id,
-                "label": cut.label,
-            }
-            for cut in (scene_graph.cuts if scene_graph else [])
-        ],
-        cta_markers=[
-            {
-                "cta_id": marker.cta_id,
-                "start_ms": marker.start_ms if marker.start_ms is not None else marker.video_time_ms,
-                "end_ms": (
-                    marker.end_ms
-                    if marker.end_ms is not None
-                    else (marker.start_ms if marker.start_ms is not None else marker.video_time_ms) + 1
-                ),
-                "label": marker.label,
-                "scene_id": marker.scene_id,
-                "cut_id": marker.cut_id,
-                "video_time_ms": marker.video_time_ms,
-            }
-            for marker in (scene_graph.cta_markers if scene_graph else [])
-        ],
-        created_at=video.created_at,
-    )
-
-
 @router.post("/studies", response_model=StudyRead, status_code=201)
 def create_study(payload: StudyCreate, db: Session = Depends(get_db)) -> Study:
     logger.info("create_study name=%s", payload.name)
@@ -131,7 +72,7 @@ def create_video(payload: VideoCreate, db: Session = Depends(get_db)) -> VideoRe
     db.add(video)
     db.flush()
 
-    upsert_video_scene_graph(
+    scene_graph = upsert_video_scene_graph(
         db,
         video,
         variant_id=payload.variant_id,
@@ -144,7 +85,55 @@ def create_video(payload: VideoCreate, db: Session = Depends(get_db)) -> VideoRe
     db.refresh(video)
     invalidate_readout_cache(video.id)
 
-    return _build_video_read(video, db)
+    return VideoRead(
+        id=video.id,
+        study_id=video.study_id,
+        title=video.title,
+        source_url=video.source_url,
+        duration_ms=video.duration_ms,
+        variant_id=scene_graph.variant_id,
+        metadata=video.video_metadata,
+        scene_boundaries=video.scene_boundaries,
+        scenes=[
+            {
+                "scene_id": scene.scene_id or f"scene-{scene.scene_index + 1}",
+                "scene_index": scene.scene_index,
+                "start_ms": scene.start_ms,
+                "end_ms": scene.end_ms,
+                "label": scene.label,
+                "thumbnail_url": scene.thumbnail_url,
+                "cut_id": scene.cut_id,
+                "cta_id": scene.cta_id,
+            }
+            for scene in scene_graph.scenes
+        ],
+        cuts=[
+            {
+                "cut_id": cut.cut_id,
+                "video_time_ms": cut.start_ms,
+                "scene_id": cut.scene_id,
+                "label": cut.label,
+            }
+            for cut in scene_graph.cuts
+        ],
+        cta_markers=[
+            {
+                "cta_id": marker.cta_id,
+                "start_ms": marker.start_ms if marker.start_ms is not None else marker.video_time_ms,
+                "end_ms": (
+                    marker.end_ms
+                    if marker.end_ms is not None
+                    else (marker.start_ms if marker.start_ms is not None else marker.video_time_ms) + 1
+                ),
+                "label": marker.label,
+                "scene_id": marker.scene_id,
+                "cut_id": marker.cut_id,
+                "video_time_ms": marker.video_time_ms,
+            }
+            for marker in scene_graph.cta_markers
+        ],
+        created_at=video.created_at,
+    )
 
 
 @router.patch("/videos/{video_id}", response_model=VideoRead)
@@ -166,8 +155,69 @@ def update_video(
         invalidate_readout_cache(video_id=video_id)
     db.commit()
     db.refresh(video)
+    return VideoRead.model_validate(video)
 
-    # Use explicit scene graph loading to avoid SQLAlchemy lazy-load failure
-    # after db.commit() — model_validate(video) triggers relationship access
-    # which fails when the session is in a post-commit expired state.
-    return _build_video_read(video, db)
+
+@router.delete("/videos/{video_id}", status_code=204)
+def delete_video(video_id: UUID, db: Session = Depends(get_db)) -> None:
+    logger.info("delete_video video_id=%s", video_id)
+    video = db.get(Video, video_id)
+    if video is None:
+        raise HTTPException(status_code=404, detail="Video not found")
+    db.delete(video)
+    db.commit()
+
+
+@router.get("/videos", response_model=VideoCatalogResponse)
+def get_video_catalog(
+    limit: int = Query(default=50, ge=1, le=500),
+    db: Session = Depends(get_db),
+) -> VideoCatalogResponse:
+    return list_video_catalog(db, limit=limit)
+
+
+@router.get("/videos/{video_id}/scene-graph", response_model=VideoSceneGraphResponse)
+def get_scene_graph(
+    video_id: UUID,
+    variant_id: Optional[str] = Query(default=None, alias="variantId"),
+    db: Session = Depends(get_db),
+) -> VideoSceneGraphResponse:
+    return get_video_scene_graph(db, video_id, variant_id=variant_id)
+
+
+@router.get("/videos/{video_id}/cta-markers", response_model=VideoCtaMarkersResponse)
+def get_cta_markers(
+    video_id: UUID,
+    variant_id: Optional[str] = Query(default=None, alias="variantId"),
+    db: Session = Depends(get_db),
+) -> VideoCtaMarkersResponse:
+    scene_graph = get_video_scene_graph(db, video_id, variant_id=variant_id)
+    return VideoCtaMarkersResponse(
+        video_id=scene_graph.video_id,
+        variant_id=scene_graph.variant_id,
+        cta_markers=scene_graph.cta_markers,
+    )
+
+
+@router.put("/videos/{video_id}/cta-markers", response_model=VideoCtaMarkersResponse)
+def update_cta_markers(
+    video_id: UUID,
+    payload: VideoCtaMarkersUpdateRequest,
+    variant_id: Optional[str] = Query(default=None, alias="variantId"),
+    db: Session = Depends(get_db),
+) -> VideoCtaMarkersResponse:
+    logger.info("update_cta_markers video_id=%s", video_id)
+    response = replace_video_cta_markers(
+        db,
+        video_id,
+        variant_id=variant_id,
+        cta_markers=payload.cta_markers,
+    )
+    db.commit()
+    invalidate_readout_cache(video_id)
+    return response
+
+
+@router.get("/videos/{video_id}/summary", response_model=VideoSummaryResponse)
+def get_video_summary(video_id: UUID, db: Session = Depends(get_db)) -> VideoSummaryResponse:
+    return build_video_summary(db, video_id)

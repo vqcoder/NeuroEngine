@@ -1,0 +1,40 @@
+name: Biograph API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "services/biograph_api/**"
+  pull_request:
+    paths:
+      - "services/biograph_api/**"
+
+concurrency:
+  group: biograph-api-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: pytest
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/biograph_api
+    env:
+      DATABASE_URL: "sqlite:///test.db"
+      API_TOKEN_REQUIRED: "false"
+      WEBCAM_CAPTURE_ARCHIVE_ENCRYPTION_MODE: "none"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Run tests
+        run: uv run pytest tests/ -q

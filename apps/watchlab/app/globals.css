@@ -393,7 +393,7 @@ video {
 .immersive-video {
   width: 100%;
   height: auto;
-  max-height: 72vh;
+  max-height: 75vh;
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
   background: #000;
@@ -1042,4 +1042,115 @@ hr {
     gap: 20px;
     max-height: none;
   }
+}
+
+/* ── Upload Progress Bar ───────────────────────────────────── */
+
+.upload-progress {
+  margin: 16px 0 8px;
+  padding: 20px 24px;
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.upload-steps-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  position: relative;
+}
+
+.upload-step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  flex: 1;
+}
+
+.upload-step-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  border: 2px solid var(--border);
+  background: var(--bg-2);
+  color: var(--text-3);
+  position: relative;
+  z-index: 2;
+  transition: all 0.3s ease;
+}
+
+.upload-step-circle.active {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  color: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow);
+  animation: upload-pulse 1.5s ease-in-out infinite;
+}
+
+.upload-step-circle.done {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--bg-0);
+  font-weight: 700;
+}
+
+.upload-step-circle.error {
+  border-color: var(--bad);
+  background: var(--bad-dim);
+  color: var(--bad);
+}
+
+@keyframes upload-pulse {
+  0%, 100% { box-shadow: 0 0 12px var(--accent-glow); }
+  50% { box-shadow: 0 0 20px var(--accent-glow), 0 0 40px rgba(200, 240, 49, 0.08); }
+}
+
+.upload-step-line {
+  position: absolute;
+  top: 15px;
+  left: calc(50% + 18px);
+  right: calc(-50% + 18px);
+  height: 2px;
+  background: var(--border);
+  z-index: 1;
+  transition: background 0.3s ease;
+}
+
+.upload-step-line.done {
+  background: var(--accent);
+}
+
+.upload-step-label {
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  text-align: center;
+  transition: color 0.3s ease;
+}
+
+.upload-step-label.active {
+  color: var(--accent);
+}
+
+.upload-step-label.done {
+  color: var(--text-2);
+}
+
+.upload-progress-status {
+  margin-top: 14px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-2);
 }
