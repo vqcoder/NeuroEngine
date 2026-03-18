@@ -14,6 +14,8 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import uuid
+
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -30,8 +32,6 @@ from app.schemas import PredictTracePoint
 
 def _make_db(tmp_path):
     db_path = tmp_path / "test.sqlite"
-    # native_uuid=False ensures UUID columns are stored/compared as strings on SQLite,
-    # preventing "str object has no attribute hex" errors when filtering by UUID values.
     engine = create_engine(
         f"sqlite+pysqlite:///{db_path}",
         connect_args={"check_same_thread": False},
@@ -63,7 +63,7 @@ def test_upsert_stores_duration_ms_on_new_video(tmp_path):
             duration_ms=29000,
         )
         assert video_id is not None
-        video = db.query(Video).filter(Video.id == str(video_id)).first()
+        video = db.query(Video).filter(Video.id == uuid.UUID(video_id)).first()
         assert video is not None
         assert video.duration_ms == 29000
     finally:
@@ -80,7 +80,7 @@ def test_upsert_stores_none_duration_when_unknown(tmp_path):
             duration_ms=None,
         )
         assert video_id is not None
-        video = db.query(Video).filter(Video.id == str(video_id)).first()  # type: ignore[arg-type]
+        video = db.query(Video).filter(Video.id == uuid.UUID(video_id)).first()  # type: ignore[arg-type]
         assert video is not None
         assert video.duration_ms is None
     finally:
@@ -98,7 +98,7 @@ def test_upsert_backfills_duration_ms_on_existing_record(tmp_path):
             duration_ms=None,
         )
         assert video_id is not None
-        video = db.query(Video).filter(Video.id == str(video_id)).first()  # type: ignore[arg-type]
+        video = db.query(Video).filter(Video.id == uuid.UUID(video_id)).first()  # type: ignore[arg-type]
         assert video.duration_ms is None
 
         # Second call with same URL and now we know the duration
@@ -132,7 +132,7 @@ def test_upsert_does_not_overwrite_existing_duration_ms(tmp_path):
             hosted_url=None,
             duration_ms=None,
         )
-        video = db.query(Video).filter(Video.id == str(video_id)).first()  # type: ignore[arg-type]
+        video = db.query(Video).filter(Video.id == uuid.UUID(video_id)).first()  # type: ignore[arg-type]
         db.refresh(video)
         # The original value must be preserved — None must not clobber it
         assert video.duration_ms == 30000
