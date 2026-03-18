@@ -90,7 +90,7 @@ export type AnnotationOverlayMarker = {
   cta_id?: string | null;
 };
 
-export type TelemetryOverlayKind = 'pause' | 'seek' | 'abandonment';
+export type TelemetryOverlayKind = 'pause' | 'seek' | 'abandonment' | 'audio_reaction';
 
 export type TelemetryOverlayMarker = {
   kind: TelemetryOverlayKind;
