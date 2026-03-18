@@ -28,9 +28,8 @@ import {
   collectBrowserMetadata,
   markStudySeen,
   pickUnseenVideo,
-  buildStudyHref,
 } from '@/lib/studyHelpers';
-import type { VideoLibraryItem } from '@/lib/videoLibrary';
+import { buildStudyHref, type VideoLibraryItem } from '@/lib/videoLibrary';
 import type { StudyStage } from '@/lib/studyTypes';
 
 // ── Types ──────────────────────────────────────────────────────────────────
