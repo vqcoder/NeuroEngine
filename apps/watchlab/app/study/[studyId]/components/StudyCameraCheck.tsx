@@ -86,7 +86,7 @@ export default function StudyCameraCheck({
     } else {
       micHighEnergySamplesRef.current = 0;
     }
-    if (elapsed >= 1500 && micHighEnergySamplesRef.current >= 2) {
+    if (elapsed >= 300 && micHighEnergySamplesRef.current >= 2) {
       micConfirmedRef.current = true;
     }
   }
