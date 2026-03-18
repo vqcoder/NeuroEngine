@@ -12,6 +12,7 @@ import type { MutableRefObject, RefObject } from 'react';
 import {
   type FramePointer,
   type QualitySample,
+  type TimelineEvent,
   type UploadFrame,
 } from '@/lib/schema';
 import {
@@ -40,8 +41,8 @@ import { safeUuid } from '@/lib/studyHelpers';
 export interface UseWebcamDeps {
   /** Append a timeline event. */
   appendEvent: (
-    type: string,
-    details?: Record<string, unknown>,
+    type: TimelineEvent['type'],
+    details?: TimelineEvent['details'],
     allowBackward?: boolean,
     explicitVideoTimeMs?: number,
   ) => void;

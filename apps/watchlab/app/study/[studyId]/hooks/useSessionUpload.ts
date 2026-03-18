@@ -58,8 +58,8 @@ export interface UseSessionUploadDeps {
   sampleSyncedVideoTimeMs: (allowBackward: boolean) => number;
   /** Append a timeline event. */
   appendEvent: (
-    type: string,
-    details?: Record<string, unknown>,
+    type: TimelineEvent['type'],
+    details?: TimelineEvent['details'],
     allowBackward?: boolean,
     explicitVideoTimeMs?: number,
   ) => void;
