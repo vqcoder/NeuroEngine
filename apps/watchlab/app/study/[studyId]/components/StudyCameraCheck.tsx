@@ -64,8 +64,31 @@ export default function StudyCameraCheck({
   const audioCheck = audioConfirmed ? 'check-pass' : 'check-idle';
 
   const micConfirmedRef = useRef(false);
-  if (micStatus === 'granted' && micEnergyLevel > 0.1) {
-    micConfirmedRef.current = true;
+  const micGrantedAtRef = useRef<number | null>(null);
+  const micHighEnergySamplesRef = useRef(0);
+
+  if (micStatus === 'granted' && micGrantedAtRef.current === null) {
+    micGrantedAtRef.current = performance.now();
+  }
+  if (micStatus !== 'granted') {
+    micGrantedAtRef.current = null;
+    micHighEnergySamplesRef.current = 0;
+  }
+
+  if (
+    !micConfirmedRef.current &&
+    micStatus === 'granted' &&
+    micGrantedAtRef.current !== null
+  ) {
+    const elapsed = performance.now() - micGrantedAtRef.current;
+    if (micEnergyLevel > 0.25) {
+      micHighEnergySamplesRef.current += 1;
+    } else {
+      micHighEnergySamplesRef.current = 0;
+    }
+    if (elapsed >= 1500 && micHighEnergySamplesRef.current >= 2) {
+      micConfirmedRef.current = true;
+    }
   }
   const micConfirmed = micConfirmedRef.current;
 
