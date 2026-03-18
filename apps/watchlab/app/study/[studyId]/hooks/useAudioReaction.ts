@@ -32,6 +32,7 @@ type AppendEventFn = (
 
 export interface UseAudioReactionReturn {
   micStatus: MicStatus;
+  micEnergyLevel: number;
   audioReactionCount: number;
   startMicCapture: (appendEvent: AppendEventFn) => Promise<void>;
   stopMicCapture: () => void;
@@ -63,6 +64,7 @@ export function classifyReaction(energy: number, durationMs: number): ReactionTy
 
 export function useAudioReaction(): UseAudioReactionReturn {
   const [micStatus, setMicStatus] = useState<MicStatus>('idle');
+  const [micEnergyLevel, setMicEnergyLevel] = useState(0);
   const [audioReactionCount, setAudioReactionCount] = useState(0);
 
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -86,6 +88,7 @@ export function useAudioReaction(): UseAudioReactionReturn {
       micStreamRef.current.getTracks().forEach((t) => t.stop());
       micStreamRef.current = null;
     }
+    setMicEnergyLevel(0);
   };
 
   const startMicCapture = async (appendEvent: AppendEventFn) => {
@@ -134,6 +137,7 @@ export function useAudioReaction(): UseAudioReactionReturn {
         analyserRef.current.getByteTimeDomainData(dataArray);
 
         const energy = computeRmsEnergy(dataArray);
+        setMicEnergyLevel(energy);
         const now = performance.now();
 
         if (energy > ENERGY_THRESHOLD) {
@@ -176,6 +180,7 @@ export function useAudioReaction(): UseAudioReactionReturn {
 
   return {
     micStatus,
+    micEnergyLevel,
     audioReactionCount,
     startMicCapture,
     stopMicCapture,

@@ -196,7 +196,7 @@ export default function StudyClient({ studyId }: { studyId: string }) {
 
   // ── Hook: useAudioReaction ──────────────────────────────────────────────
   const {
-    micStatus, audioReactionCount,
+    micStatus, micEnergyLevel, audioReactionCount,
     startMicCapture, stopMicCapture, bypassMic,
   } = useAudioReaction();
 
@@ -1109,6 +1109,10 @@ export default function StudyClient({ studyId }: { studyId: string }) {
 
   const onMicAllow = async () => {
     await startMicCapture(appendEvent);
+    // Stay on mic_check stage so participant can verify the mic works
+  };
+
+  const onMicConfirm = () => {
     beginWatchStage();
   };
 
@@ -1659,7 +1663,9 @@ export default function StudyClient({ studyId }: { studyId: string }) {
       <StudyMicCheck
         onAllow={onMicAllow}
         onSkip={onMicSkip}
+        onConfirm={onMicConfirm}
         micStatus={micStatus}
+        micEnergyLevel={micEnergyLevel}
       />
     );
   }
