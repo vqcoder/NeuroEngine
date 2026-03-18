@@ -10,6 +10,7 @@ import {
   Typography
 } from '@mui/material';
 import { useSearchParams } from 'react-router-dom';
+import EditSimulator from '../components/EditSimulator';
 import TimelineTrackLanes from '../components/TimelineTrackLanes';
 import { usePredictJob } from '../hooks/usePredictJob';
 import type { PredictResponse } from '../types';
@@ -314,6 +315,18 @@ export default function PredictorPage() {
         {/* Track evidence summary */}
         {hasTimeline ? (
           <PredictorTrackSummary tracks={predictorTracks} />
+        ) : null}
+
+        {/* Edit simulator */}
+        {hasTimeline ? (
+          <Card>
+            <CardContent>
+              <Typography variant="h6" fontWeight={700} mb={2}>
+                Edit Simulator
+              </Typography>
+              <EditSimulator trace={timeline} />
+            </CardContent>
+          </Card>
         ) : null}
       </Stack>
     </Box>
