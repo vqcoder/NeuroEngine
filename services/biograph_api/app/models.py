@@ -524,3 +524,18 @@ class VideoFeatureTrack(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     analysis: Mapped[VideoTimelineAnalysis] = relationship(back_populates="feature_tracks")
+
+
+class VideoSynchronyCache(Base):
+    __tablename__ = "video_synchrony_cache"
+    __table_args__ = (
+        UniqueConstraint("video_id", "window_ms"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    video_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("videos.id", ondelete="CASCADE"))
+    computed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    session_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    window_ms: Mapped[int] = mapped_column(Integer, nullable=False)
+    windows: Mapped[Dict[str, Any]] = mapped_column(JSON, nullable=False)
+    summary: Mapped[Dict[str, Any]] = mapped_column(JSON, nullable=False)
