@@ -1,6 +1,6 @@
 # Pin to exact patch to prevent silent breakage from Docker Hub tag updates.
 # When upgrading, regenerate readout_guardian_baseline.json and run deploy-gate.
-FROM python:3.11.11-slim
+FROM python:3.14.3-slim
 
 WORKDIR /service
 
