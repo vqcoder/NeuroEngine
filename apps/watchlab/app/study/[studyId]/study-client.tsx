@@ -805,7 +805,8 @@ export default function StudyClient({ studyId }: { studyId: string }) {
             originalVideoUrl: nextOriginalVideoUrl,
             dialEnabled: payload.dialEnabled ?? false,
             requireWebcam: payload.requireWebcam ?? false,
-            micEnabled: payload.micEnabled ?? false
+            micEnabled: payload.micEnabled ?? false,
+            clientExtractionEnabled: payload.clientExtractionEnabled ?? false
           });
 
         }
