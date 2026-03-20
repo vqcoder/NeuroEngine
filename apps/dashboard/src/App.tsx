@@ -5,6 +5,8 @@ import ErrorBoundary from './components/ErrorBoundary';
 import HomePage from './pages/HomePage';
 import ObservabilityPage from './pages/ObservabilityPage';
 import PredictorPage from './pages/PredictorPage';
+import StudiesPage from './pages/StudiesPage';
+import StudyDetailPage from './pages/StudyDetailPage';
 import VideoDashboardPage from './pages/VideoDashboardPage';
 import VideoTimelineReportPage from './pages/VideoTimelineReportPage';
 
@@ -96,6 +98,13 @@ function AppHeader() {
         </Box>
         <Box
           component={Link}
+          to="/studies"
+          sx={NAV_LINK_SX}
+        >
+          Studies
+        </Box>
+        <Box
+          component={Link}
           to="/predictor"
           sx={NAV_LINK_SX}
         >
@@ -136,6 +145,8 @@ export default function App() {
       <ErrorBoundary label="root">
         <Routes>
           <Route path="/" element={<RouteErrorBoundary label="home"><HomePage /></RouteErrorBoundary>} />
+          <Route path="/studies" element={<RouteErrorBoundary label="studies"><StudiesPage /></RouteErrorBoundary>} />
+          <Route path="/studies/:studyId" element={<RouteErrorBoundary label="study-detail"><StudyDetailPage /></RouteErrorBoundary>} />
           <Route path="/observability" element={<RouteErrorBoundary label="observability"><ObservabilityPage /></RouteErrorBoundary>} />
           <Route path="/predictor" element={<RouteErrorBoundary label="predictor"><PredictorPage /></RouteErrorBoundary>} />
           <Route path="/videos/:videoId" element={<RouteErrorBoundary label="video-dashboard"><VideoDashboardPage /></RouteErrorBoundary>} />
