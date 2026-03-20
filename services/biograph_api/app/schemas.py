@@ -38,6 +38,10 @@ from .schemas_video import (  # noqa: F401
     VideoSceneIn,
     VideoSceneRead,
     VideoUpdate,
+    StudyDetail,
+    StudyListItem,
+    StudyListResponse,
+    StudyUpdate,
 )
 
 # -- Session / trace / annotation / capture ----------------------------------
