@@ -84,6 +84,9 @@ class Settings(BaseSettings):
     # Security settings
     api_token_required: bool = True
     rate_limit_rpm: int = 120
+    # Supabase Auth — set SUPABASE_JWT_SECRET from Supabase dashboard → Settings → API
+    supabase_jwt_secret: str = ""
+    supabase_url: str = ""
 
     @property
     def normalized_database_url(self) -> str:
