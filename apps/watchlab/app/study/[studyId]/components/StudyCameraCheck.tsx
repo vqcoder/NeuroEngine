@@ -26,6 +26,7 @@ export interface StudyCameraCheckProps {
   micEnergyLevel: number;
   onMicAllow: () => void;
   onMicSkip: () => void;
+  onMicConfirmed: () => void;
 }
 
 export default function StudyCameraCheck({
@@ -48,7 +49,8 @@ export default function StudyCameraCheck({
   micStatus,
   micEnergyLevel,
   onMicAllow,
-  onMicSkip
+  onMicSkip,
+  onMicConfirmed
 }: StudyCameraCheckProps) {
   const lightCheck = quality.brightnessOk
     ? 'check-pass'
@@ -88,6 +90,7 @@ export default function StudyCameraCheck({
     }
     if (elapsed >= 300 && micHighEnergySamplesRef.current >= 2) {
       micConfirmedRef.current = true;
+      onMicConfirmed();
     }
   }
   const micConfirmed = micConfirmedRef.current;

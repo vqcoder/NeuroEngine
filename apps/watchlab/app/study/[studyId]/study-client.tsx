@@ -206,7 +206,9 @@ export default function StudyClient({ studyId }: { studyId: string }) {
   // ── Hook: useAudioReaction ──────────────────────────────────────────────
   const {
     micStatus, micEnergyLevel, audioReactionCount,
-    startMicCapture, stopMicCapture, bypassMic,
+    startMicCapture, stopMicCapture,
+    pauseEnergyMonitoring, resumeEnergyMonitoring,
+    bypassMic,
   } = useAudioReaction();
 
   const reportDiagnostic = ({
@@ -1113,6 +1115,11 @@ export default function StudyClient({ studyId }: { studyId: string }) {
       }, 200);
     }
 
+    // Resume mic reaction detection for the watch stage (paused during camera check)
+    if (micStatus === 'granted') {
+      resumeEnergyMonitoring(appendEvent);
+    }
+
     window.setTimeout(() => {
       const video = studyVideoRef.current;
       if (!video) {
@@ -1687,6 +1694,7 @@ export default function StudyClient({ studyId }: { studyId: string }) {
         micEnergyLevel={micEnergyLevel}
         onMicAllow={onMicAllow}
         onMicSkip={onMicSkip}
+        onMicConfirmed={() => pauseEnergyMonitoring()}
       />
     );
   }

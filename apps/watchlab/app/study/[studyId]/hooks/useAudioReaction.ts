@@ -36,6 +36,8 @@ export interface UseAudioReactionReturn {
   audioReactionCount: number;
   startMicCapture: (appendEvent: AppendEventFn) => Promise<void>;
   stopMicCapture: () => void;
+  pauseEnergyMonitoring: () => void;
+  resumeEnergyMonitoring: (appendEvent: AppendEventFn) => void;
   bypassMic: (appendEvent: AppendEventFn) => void;
   micStreamRef: MutableRefObject<MediaStream | null>;
 }
@@ -173,6 +175,54 @@ export function useAudioReaction(): UseAudioReactionReturn {
     }
   };
 
+  const pauseEnergyMonitoring = () => {
+    if (detectionTimerRef.current !== null) {
+      window.clearInterval(detectionTimerRef.current);
+      detectionTimerRef.current = null;
+    }
+  };
+
+  const resumeEnergyMonitoring = (appendEvent: AppendEventFn) => {
+    if (detectionTimerRef.current !== null) return; // already running
+    if (!analyserRef.current) return;
+
+    const dataArray = new Uint8Array(analyserRef.current.fftSize);
+
+    detectionTimerRef.current = window.setInterval(() => {
+      if (!analyserRef.current) return;
+      analyserRef.current.getByteTimeDomainData(dataArray);
+
+      const energy = computeRmsEnergy(dataArray);
+      setMicEnergyLevel(energy);
+      const now = performance.now();
+
+      if (energy > ENERGY_THRESHOLD) {
+        if (sustainedStartMsRef.current === null) {
+          sustainedStartMsRef.current = now;
+        }
+        const sustainedDuration = now - sustainedStartMsRef.current;
+
+        if (
+          sustainedDuration >= SUSTAINED_MS &&
+          now - lastReactionMsRef.current > COOLDOWN_MS
+        ) {
+          const reactionType = classifyReaction(energy, sustainedDuration);
+          appendEvent('audio_reaction', {
+            reaction_type: reactionType,
+            energy: Math.round(energy * 1000) / 1000,
+            confidence: Math.round(energy * 1000) / 1000,
+            duration_ms: Math.round(sustainedDuration),
+          });
+          setAudioReactionCount((c) => c + 1);
+          lastReactionMsRef.current = now;
+          sustainedStartMsRef.current = null;
+        }
+      } else {
+        sustainedStartMsRef.current = null;
+      }
+    }, SAMPLE_RATE_MS);
+  };
+
   const bypassMic = (appendEvent: AppendEventFn) => {
     setMicStatus('bypassed');
     appendEvent('mic_bypassed', {});
@@ -184,6 +234,8 @@ export function useAudioReaction(): UseAudioReactionReturn {
     audioReactionCount,
     startMicCapture,
     stopMicCapture,
+    pauseEnergyMonitoring,
+    resumeEnergyMonitoring,
     bypassMic,
     micStreamRef,
   };
