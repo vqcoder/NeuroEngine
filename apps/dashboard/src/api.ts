@@ -17,6 +17,7 @@ import type {
   VideoSummary
 } from './types';
 import { guardIsObject, guardItemsWrapper, guardReadoutShape } from './api-guards';
+import { getAccessToken } from './lib/supabase';
 
 const DEFAULT_LOCAL_API_BASE_URL = 'http://127.0.0.1:8000';
 const DEFAULT_PROD_API_BASE_URLS: string[] = (
@@ -35,10 +36,27 @@ const API_BASE_STORAGE_KEY = 'neurotrace_api_base_url';
  */
 const _LEGACY_API_TOKEN = (import.meta.env.VITE_API_TOKEN as string | undefined)?.trim() ?? '';
 
+let _cachedSupabaseToken: string | null = null;
+let _tokenFetchPromise: Promise<string | null> | null = null;
+
+async function resolveAuthToken(): Promise<string | null> {
+  // Prefer Supabase JWT when available
+  if (!_tokenFetchPromise) {
+    _tokenFetchPromise = getAccessToken().then((token) => {
+      _cachedSupabaseToken = token;
+      _tokenFetchPromise = null;
+      return token;
+    });
+  }
+  return _tokenFetchPromise;
+}
+
 function withAuth(init?: RequestInit): RequestInit {
-  if (!_LEGACY_API_TOKEN) return init ?? {};
+  // Use cached Supabase token if available, else fall back to legacy
+  const token = _cachedSupabaseToken || _LEGACY_API_TOKEN;
+  if (!token) return init ?? {};
   const existing = (init?.headers ?? {}) as Record<string, string>;
-  return { ...init, headers: { Authorization: `Bearer ${_LEGACY_API_TOKEN}`, ...existing } };
+  return { ...init, headers: { Authorization: `Bearer ${token}`, ...existing } };
 }
 
 /**
@@ -224,6 +242,7 @@ function isTransientStatus(status: number): boolean {
 }
 
 async function fetchApi(pathWithQuery: string, init?: RequestInit): Promise<Response> {
+  await resolveAuthToken();
   init = withAuth(init);
   const candidates = resolveApiBaseCandidates();
   if (rememberedApiBaseUrl) {
