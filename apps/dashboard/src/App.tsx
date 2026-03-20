@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
 import { Route, Routes, Link, useLocation } from 'react-router-dom';
-import { Box, Typography } from '@mui/material';
+import { Box, Button, CircularProgress, Typography } from '@mui/material';
 import ErrorBoundary from './components/ErrorBoundary';
+import { useAuth } from './hooks/useAuth';
 import HomePage from './pages/HomePage';
+import LoginPage from './pages/LoginPage';
 import ObservabilityPage from './pages/ObservabilityPage';
 import PredictorPage from './pages/PredictorPage';
 import StudiesPage from './pages/StudiesPage';
@@ -20,7 +22,7 @@ const NAV_LINK_SX = {
   '&:hover': { color: '#e8e6e3' }
 } as const;
 
-function AppHeader() {
+function AppHeader({ userEmail, onSignOut }: { userEmail?: string; onSignOut?: () => void }) {
   return (
     <Box
       component="header"
@@ -118,6 +120,22 @@ function AppHeader() {
         >
           Observability
         </Box>
+        {userEmail && (
+          <>
+            <Typography
+              sx={{ color: '#8a8895', fontFamily: '"JetBrains Mono", monospace', fontSize: '0.68rem', ml: 1 }}
+            >
+              {userEmail}
+            </Typography>
+            <Button
+              size="small"
+              onClick={onSignOut}
+              sx={{ color: '#8a8895', textTransform: 'none', fontSize: '0.68rem', minWidth: 'auto' }}
+            >
+              Sign Out
+            </Button>
+          </>
+        )}
       </Box>
     </Box>
   );
@@ -139,9 +157,24 @@ function RouteErrorBoundary({ children, label }: { children: ReactNode; label: s
 }
 
 export default function App() {
+  const { user, loading, signOut, authEnabled } = useAuth();
+
+  if (loading) {
+    return (
+      <Box sx={{ minHeight: '100vh', bgcolor: '#08080a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <CircularProgress sx={{ color: '#c8f031' }} />
+      </Box>
+    );
+  }
+
+  // When Supabase auth is configured and user is not logged in, show login
+  if (authEnabled && !user) {
+    return <LoginPage />;
+  }
+
   return (
     <>
-      <AppHeader />
+      <AppHeader userEmail={user?.email} onSignOut={signOut} />
       <ErrorBoundary label="root">
         <Routes>
           <Route path="/" element={<RouteErrorBoundary label="home"><HomePage /></RouteErrorBoundary>} />
