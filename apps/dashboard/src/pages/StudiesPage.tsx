@@ -109,7 +109,7 @@ export default function StudiesPage() {
       {loading ? (
         <Grid container spacing={2}>
           {[0, 1, 2].map((i) => (
-            <Grid item xs={12} sm={6} md={4} key={i}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={i}>
               <Skeleton variant="rectangular" height={160} sx={{ borderRadius: 2, bgcolor: '#1a1a22' }} />
             </Grid>
           ))}
@@ -121,7 +121,7 @@ export default function StudiesPage() {
       ) : (
         <Grid container spacing={2}>
           {studies.map((study) => (
-            <Grid item xs={12} sm={6} md={4} key={study.id}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={study.id}>
               <Card
                 sx={{
                   bgcolor: '#111116',
