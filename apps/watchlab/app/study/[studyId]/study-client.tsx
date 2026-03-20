@@ -168,6 +168,14 @@ export default function StudyClient({ studyId }: { studyId: string }) {
     requireWebcam: config.requireWebcam,
   });
 
+  // ── Hook: useClientExtraction ───────────────────────────────────────────
+  const {
+    extractionStatus, traceRows: clientTraceRows, frameCount: extractionFrameCount,
+    initWorker, processFrame: processExtractionFrame, terminateWorker,
+  } = useClientExtraction();
+  const extractionCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const extractionTimerRef = useRef<number | null>(null);
+
   // ── Hook: useSessionUpload ───────────────────────────────────────────────
   const {
     uploadStatus, dashboardUrl, uploadTriggeredRef,
@@ -200,14 +208,6 @@ export default function StudyClient({ studyId }: { studyId: string }) {
     micStatus, micEnergyLevel, audioReactionCount,
     startMicCapture, stopMicCapture, bypassMic,
   } = useAudioReaction();
-
-  // ── Hook: useClientExtraction ───────────────────────────────────────────
-  const {
-    extractionStatus, traceRows: clientTraceRows, frameCount: extractionFrameCount,
-    initWorker, processFrame: processExtractionFrame, terminateWorker,
-  } = useClientExtraction();
-  const extractionCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const extractionTimerRef = useRef<number | null>(null);
 
   const reportDiagnostic = ({
     eventType,
