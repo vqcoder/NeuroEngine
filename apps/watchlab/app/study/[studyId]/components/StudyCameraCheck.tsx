@@ -83,7 +83,7 @@ export default function StudyCameraCheck({
     micGrantedAtRef.current !== null
   ) {
     const elapsed = performance.now() - micGrantedAtRef.current;
-    if (micEnergyLevel > 0.25) {
+    if (micEnergyLevel > 0.08) {
       micHighEnergySamplesRef.current += 1;
     } else {
       micHighEnergySamplesRef.current = 0;
@@ -100,6 +100,12 @@ export default function StudyCameraCheck({
 
   return (
     <main className="camera-stage-full">
+      <style>{`
+        @keyframes mic-pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.6; }
+        }
+      `}</style>
       <canvas ref={qualityCanvasRef} style={{ display: 'none' }} />
       <canvas ref={captureCanvasRef} style={{ display: 'none' }} />
       <div className="camera-layout">
@@ -252,11 +258,12 @@ export default function StudyCameraCheck({
                       >
                         <div
                           style={{
-                            width: `${Math.min(micEnergyLevel * 100, 100)}%`,
+                            width: `${Math.min(Math.max(micEnergyLevel * 100, 4), 100)}%`,
                             height: '100%',
                             borderRadius: 5,
                             background: 'linear-gradient(90deg, #22c55e, #4ade80)',
                             transition: 'width 80ms ease-out',
+                            animation: 'mic-pulse 1.5s ease-in-out infinite',
                           }}
                         />
                       </div>
