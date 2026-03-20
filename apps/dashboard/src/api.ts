@@ -9,6 +9,8 @@ import type {
   PredictJobStatus,
   PredictResponse,
   ReadoutExportPackage,
+  StudyDetail,
+  StudyListItem,
   VideoCatalogItem,
   VideoCatalogResponse,
   VideoReadout,
@@ -552,4 +554,48 @@ export async function fetchAnalystSessions(
 ): Promise<AnalystSessionsResponse> {
   const response = await fetchApi(`/analyst/videos/${videoId}/sessions`);
   return (await response.json()) as AnalystSessionsResponse;
+}
+
+// ---------------------------------------------------------------------------
+// Study Management
+// ---------------------------------------------------------------------------
+
+export async function fetchStudies(limit = 50): Promise<StudyListItem[]> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  const response = await fetchApi(`/studies?${params.toString()}`);
+  const body = await response.json();
+  return guardItemsWrapper(body, 'GET /studies') as StudyListItem[];
+}
+
+export async function fetchStudyDetail(studyId: string): Promise<StudyDetail> {
+  const response = await fetchApi(`/studies/${studyId}`);
+  const body = await response.json();
+  guardIsObject(body, `GET /studies/${studyId}`);
+  return body as StudyDetail;
+}
+
+export async function createStudy(name: string, description?: string): Promise<StudyListItem> {
+  const response = await fetchApi('/studies', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, description }),
+  });
+  const body = await response.json();
+  guardIsObject(body, 'POST /studies');
+  return body as StudyListItem;
+}
+
+export async function updateStudy(studyId: string, updates: { name?: string; description?: string }): Promise<StudyListItem> {
+  const response = await fetchApi(`/studies/${studyId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  });
+  const body = await response.json();
+  guardIsObject(body, `PATCH /studies/${studyId}`);
+  return body as StudyListItem;
+}
+
+export async function deleteStudy(studyId: string): Promise<void> {
+  await fetchApi(`/studies/${studyId}`, { method: 'DELETE' });
 }
