@@ -50,6 +50,7 @@ import { useTimeline } from './hooks/useTimeline';
 import { useWebcam } from './hooks/useWebcam';
 import { useSessionUpload } from './hooks/useSessionUpload';
 import { useAudioReaction } from './hooks/useAudioReaction';
+import { useClientExtraction } from './hooks/useClientExtraction';
 
 
 export default function StudyClient({ studyId }: { studyId: string }) {
@@ -167,6 +168,14 @@ export default function StudyClient({ studyId }: { studyId: string }) {
     requireWebcam: config.requireWebcam,
   });
 
+  // ── Hook: useClientExtraction ───────────────────────────────────────────
+  const {
+    extractionStatus, traceRows: clientTraceRows, frameCount: extractionFrameCount,
+    initWorker, processFrame: processExtractionFrame, terminateWorker,
+  } = useClientExtraction();
+  const extractionCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const extractionTimerRef = useRef<number | null>(null);
+
   // ── Hook: useSessionUpload ───────────────────────────────────────────────
   const {
     uploadStatus, dashboardUrl, uploadTriggeredRef,
@@ -191,6 +200,7 @@ export default function StudyClient({ studyId }: { studyId: string }) {
     annotationDurationMs,
     setStage,
     setNextVideoChoice,
+    clientTraceRows,
   });
 
   // ── Hook: useAudioReaction ──────────────────────────────────────────────
@@ -795,7 +805,8 @@ export default function StudyClient({ studyId }: { studyId: string }) {
             originalVideoUrl: nextOriginalVideoUrl,
             dialEnabled: payload.dialEnabled ?? false,
             requireWebcam: payload.requireWebcam ?? false,
-            micEnabled: payload.micEnabled ?? false
+            micEnabled: payload.micEnabled ?? false,
+            clientExtractionEnabled: payload.clientExtractionEnabled ?? false
           });
 
         }
@@ -898,6 +909,11 @@ export default function StudyClient({ studyId }: { studyId: string }) {
     return () => {
       stopWebcam();
       stopMicCapture();
+      if (extractionTimerRef.current !== null) {
+        window.clearInterval(extractionTimerRef.current);
+        extractionTimerRef.current = null;
+      }
+      terminateWorker();
       stopDialSampling();
       destroyHlsPlayer();
     };
@@ -966,6 +982,9 @@ export default function StudyClient({ studyId }: { studyId: string }) {
       saveParticipantInfo(window.localStorage, participantName.trim(), participantEmail.trim());
     }
     appendEvent('consent_accepted');
+    if (config.clientExtractionEnabled) {
+      initWorker();
+    }
     await startWebcamChecks();
   };
 
@@ -1073,11 +1092,26 @@ export default function StudyClient({ studyId }: { studyId: string }) {
       'playback_started',
       {
         mode: 'passive_first_viewing',
-        webcamEnabled: !webcamBypassed
+        webcamEnabled: !webcamBypassed,
+        clientExtraction: config.clientExtractionEnabled && (extractionStatus === 'ready' || extractionStatus === 'running'),
       },
       true,
       0
     );
+
+    // Start client extraction frame processing interval (5fps)
+    if (config.clientExtractionEnabled && (extractionStatus === 'ready' || extractionStatus === 'running')) {
+      if (extractionTimerRef.current !== null) {
+        window.clearInterval(extractionTimerRef.current);
+      }
+      extractionTimerRef.current = window.setInterval(() => {
+        const webcamVideo = webcamVideoRef.current;
+        const canvas = extractionCanvasRef.current;
+        if (webcamVideo && canvas) {
+          processExtractionFrame(webcamVideo, canvas, sampleSyncedVideoTimeMs(false));
+        }
+      }, 200);
+    }
 
     window.setTimeout(() => {
       const video = studyVideoRef.current;
@@ -1248,6 +1282,11 @@ export default function StudyClient({ studyId }: { studyId: string }) {
   const toSurveyStage = () => {
     setIsPlaying(false);
     stopMicCapture();
+    if (extractionTimerRef.current !== null) {
+      window.clearInterval(extractionTimerRef.current);
+      extractionTimerRef.current = null;
+    }
+    terminateWorker();
     // Ensure videoCompleted is set — the user has progressed past the video
     // stage (either via onEnded or annotation skip/continue) so the survey
     // submit button must be enabled once scores are entered.
@@ -1669,6 +1708,7 @@ export default function StudyClient({ studyId }: { studyId: string }) {
         />
         <canvas ref={qualityCanvasRef} style={{ display: 'none' }} />
         <canvas ref={captureCanvasRef} style={{ display: 'none' }} />
+        <canvas ref={extractionCanvasRef} width={224} height={224} style={{ display: 'none' }} />
 
         {stage === 'watch' || stage === 'annotation' ? (
           <div className="panel" style={{ padding: '10px 24px' }}>

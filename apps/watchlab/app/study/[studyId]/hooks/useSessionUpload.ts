@@ -65,6 +65,8 @@ export interface UseSessionUploadDeps {
   ) => void;
   /** Annotation duration for canonical trace row computation. */
   annotationDurationMs: number;
+  /** Client-extracted trace rows (when client extraction is active). */
+  clientTraceRows?: TraceRow[];
   /** Set the stage after upload. */
   setStage: React.Dispatch<React.SetStateAction<StudyStage>>;
   /** Set the next video choice for sequence playback. */
@@ -94,6 +96,7 @@ export function useSessionUpload(deps: UseSessionUploadDeps): UseSessionUploadRe
     qualitySamplesRef, annotationMarkersRef, annotationSkippedRef,
     sampleSyncedVideoTimeMs, appendEvent,
     annotationDurationMs, setStage, setNextVideoChoice,
+    clientTraceRows,
   } = deps;
 
   const [uploadStatus, setUploadStatus] = useState<string>('');
@@ -147,11 +150,12 @@ export function useSessionUpload(deps: UseSessionUploadDeps): UseSessionUploadRe
     });
 
   const buildPayload = (surveyResponses: SurveyResponse[]): SessionUploadPayload => {
+    const useClientTraceRows = clientTraceRows && clientTraceRows.length > 0;
     const hasFrames = framesRef.current.length > 0;
     const hasPointers = framePointersRef.current.length > 0;
     const normalizedSourceUrl = resolveUploadSourceUrl();
 
-    if (!hasFrames && !hasPointers) {
+    if (!useClientTraceRows && !hasFrames && !hasPointers) {
       framePointersRef.current.push({
         id: safeUuid(),
         timestampMs: Date.now(),
@@ -170,14 +174,14 @@ export function useSessionUpload(deps: UseSessionUploadDeps): UseSessionUploadRe
       browserMetadata: collectBrowserMetadata(),
       eventTimeline: [...timelineRef.current],
       dialSamples: dialSamplesRef.current,
-      traceRows: getCanonicalTraceRows(),
+      traceRows: useClientTraceRows ? clientTraceRows : getCanonicalTraceRows(),
       qualitySamples: qualitySamplesRef.current,
       sessionQualitySummary: buildSessionQualitySummary(),
       annotations: annotationMarkersRef.current,
       annotationSkipped: annotationSkippedRef.current,
       surveyResponses,
-      frames: framesRef.current,
-      framePointers: framePointersRef.current,
+      frames: useClientTraceRows ? [] : framesRef.current,
+      framePointers: useClientTraceRows ? [] : framePointersRef.current,
     };
   };
 
