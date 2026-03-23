@@ -222,3 +222,27 @@ jobs:
       - name: Cleanup
         if: always()
         run: docker rm -f biograph-ci 2>/dev/null || true
+
+  # ---------------------------------------------------------------------------
+  # Summary gate — single check name for branch ruleset
+  # ---------------------------------------------------------------------------
+  ci-gate:
+    name: CI
+    if: always()
+    needs:
+      - backend-tests
+      - guardian-fingerprint
+      - dashboard-typecheck
+      - dashboard-tests
+      - watchlab-typecheck
+      - watchlab-tests
+      - deploy-gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check results
+        run: |
+          if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" ]]; then
+            echo "One or more jobs failed"
+            exit 1
+          fi
+          echo "All CI jobs passed"

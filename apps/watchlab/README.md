@@ -151,3 +151,4 @@ Set these env vars for deployed watchlab:
 - `STUDY_DIAL_ENABLED` (`false` for passive viewer sessions, `true` for calibration studies)
 - `STUDY_REQUIRE_WEBCAM` (`false` default; set `true` for strict legacy studies that require webcam)
 - `WATCHLAB_ALLOW_SYNTHETIC_TRACE_FALLBACK` (`false` default; set `true` only for demo/scaffold sessions)
+
