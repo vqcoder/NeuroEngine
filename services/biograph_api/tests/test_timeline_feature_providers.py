@@ -6,7 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from app.config import get_settings
-from app.timeline_feature_store import _extract_text_overlay_segments, _extract_transcript_segments
+from app.timeline_feature_store_extractors import _extract_text_overlay_segments, _extract_transcript_segments
 
 
 def test_extract_transcript_segments_uses_whisper_provider_when_configured(monkeypatch):
@@ -14,7 +14,7 @@ def test_extract_transcript_segments_uses_whisper_provider_when_configured(monke
     get_settings.cache_clear()
 
     monkeypatch.setattr(
-        "app.timeline_feature_store._extract_transcript_with_whisper_cli",
+        "app.timeline_feature_store_extractors._extract_transcript_with_whisper_cli",
         lambda source_path, duration_ms: [
             {
                 "segment_type": "speech_token",
@@ -45,7 +45,7 @@ def test_extract_text_overlay_segments_uses_tesseract_provider_when_configured(m
     get_settings.cache_clear()
 
     monkeypatch.setattr(
-        "app.timeline_feature_store._extract_text_overlays_with_tesseract_cli",
+        "app.timeline_feature_store_extractors._extract_text_overlays_with_tesseract_cli",
         lambda source_path, duration_ms: [
             {
                 "segment_type": "text_overlay",
