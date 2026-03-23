@@ -134,7 +134,19 @@ async def _request_id_middleware(request: Request, call_next):
 # Auth middleware
 # ---------------------------------------------------------------------------
 _API_TOKEN = os.getenv("API_TOKEN", "").strip()
-_SUPABASE_JWT_SECRET = settings.supabase_jwt_secret.strip()
+_SUPABASE_URL = settings.supabase_url.strip()
+_SUPABASE_JWKS_CLIENT = None
+
+if _SUPABASE_URL:
+    try:
+        from jwt import PyJWKClient  # noqa: PLC0415
+
+        _jwks_url = f"{_SUPABASE_URL.rstrip('/')}/auth/v1/.well-known/jwks.json"
+        _SUPABASE_JWKS_CLIENT = PyJWKClient(_jwks_url)
+        logger.info("Supabase JWKS client initialised: %s", _jwks_url)
+    except Exception:
+        logger.warning("Failed to initialise Supabase JWKS client. JWT auth disabled.")
+
 _UNAUTHED_PATHS = {"/health"}
 if _docs_url:
     _UNAUTHED_PATHS |= {_docs_url, _redoc_url, _openapi_url}
@@ -147,16 +159,17 @@ if not _API_TOKEN and settings.api_token_required:
 
 
 def _verify_supabase_jwt(token: str) -> dict | None:
-    """Verify a Supabase JWT and return the payload, or None if invalid."""
-    if not _SUPABASE_JWT_SECRET:
+    """Verify a Supabase ES256 JWT via JWKS and return the payload, or None."""
+    if not _SUPABASE_JWKS_CLIENT:
         return None
     try:
         import jwt  # noqa: PLC0415
 
+        signing_key = _SUPABASE_JWKS_CLIENT.get_signing_key_from_jwt(token)
         payload = jwt.decode(
             token,
-            _SUPABASE_JWT_SECRET,
-            algorithms=["HS256"],
+            signing_key.key,
+            algorithms=["ES256"],
             audience="authenticated",
         )
         return payload
@@ -168,7 +181,7 @@ def _verify_supabase_jwt(token: str) -> dict | None:
 async def _token_auth_middleware(request: Request, call_next):
     if request.method == "OPTIONS" or request.url.path in _UNAUTHED_PATHS:
         return await call_next(request)
-    if not _API_TOKEN and not _SUPABASE_JWT_SECRET:
+    if not _API_TOKEN and not _SUPABASE_JWKS_CLIENT:
         if settings.api_token_required:
             from fastapi.responses import JSONResponse  # noqa: PLC0415
 
@@ -187,7 +200,7 @@ async def _token_auth_middleware(request: Request, call_next):
     if _API_TOKEN and token == _API_TOKEN:
         return await call_next(request)
 
-    # Check Supabase JWT
+    # Check Supabase JWT (ES256 via JWKS)
     jwt_payload = _verify_supabase_jwt(token)
     if jwt_payload is not None:
         request.state.user_id = jwt_payload.get("sub")
