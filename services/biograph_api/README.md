@@ -195,3 +195,4 @@ Useful query params:
 - `segment_length_sec` (default `6`)
 - `per_video_segments` (default `3`)
 - `early_hook_half_life_sec` (default `20`)
+# Triggered by dependency upgrade PR
