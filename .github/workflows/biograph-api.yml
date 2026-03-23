@@ -14,7 +14,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  Biograph API:
+  biograph-api:
+    name: Biograph API
     runs-on: ubuntu-latest
     defaults:
       run:

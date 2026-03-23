@@ -226,7 +226,8 @@ jobs:
   # ---------------------------------------------------------------------------
   # Summary gate — single check name for branch ruleset
   # ---------------------------------------------------------------------------
-  CI:
+  ci-gate:
+    name: CI
     if: always()
     needs:
       - backend-tests

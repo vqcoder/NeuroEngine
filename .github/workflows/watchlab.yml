@@ -16,7 +16,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  WatchLab:
+  watchlab:
+    name: WatchLab
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
