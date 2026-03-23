@@ -14,8 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
-    name: pytest
+  Biograph API:
     runs-on: ubuntu-latest
     defaults:
       run:
