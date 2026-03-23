@@ -32,7 +32,9 @@ export default function LoginPage() {
       return;
     }
     setLoading(true);
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim());
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/`,
+    });
     setLoading(false);
     if (resetError) {
       setError(resetError.message);

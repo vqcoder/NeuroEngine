@@ -1,6 +1,17 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Route, Routes, Link, useLocation } from 'react-router-dom';
-import { Box, Button, CircularProgress, Typography } from '@mui/material';
+import {
+  Alert,
+  Box,
+  Button,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  TextField,
+  Typography,
+} from '@mui/material';
 import ErrorBoundary from './components/ErrorBoundary';
 import { useAuth } from './hooks/useAuth';
 import HomePage from './pages/HomePage';
@@ -157,7 +168,30 @@ function RouteErrorBoundary({ children, label }: { children: ReactNode; label: s
 }
 
 export default function App() {
-  const { user, loading, signOut, authEnabled } = useAuth();
+  const {
+    user, loading, signOut, authEnabled,
+    showPasswordReset, updatePassword, dismissPasswordReset,
+  } = useAuth();
+  const [newPassword, setNewPassword] = useState('');
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSaving, setPasswordSaving] = useState(false);
+
+  const handlePasswordUpdate = async () => {
+    if (newPassword.length < 6) {
+      setPasswordError('Password must be at least 6 characters.');
+      return;
+    }
+    setPasswordSaving(true);
+    setPasswordError(null);
+    try {
+      await updatePassword(newPassword);
+      setNewPassword('');
+    } catch (err) {
+      setPasswordError(err instanceof Error ? err.message : 'Failed to update password.');
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -187,6 +221,29 @@ export default function App() {
           <Route path="*" element={<RouteErrorBoundary label="home"><HomePage /></RouteErrorBoundary>} />
         </Routes>
       </ErrorBoundary>
+
+      <Dialog open={showPasswordReset} onClose={dismissPasswordReset}>
+        <DialogTitle>Set New Password</DialogTitle>
+        <DialogContent sx={{ minWidth: 340 }}>
+          {passwordError && <Alert severity="error" sx={{ mb: 2 }}>{passwordError}</Alert>}
+          <TextField
+            fullWidth
+            size="small"
+            label="New password"
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            autoFocus
+            sx={{ mt: 1 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={dismissPasswordReset} disabled={passwordSaving}>Cancel</Button>
+          <Button onClick={handlePasswordUpdate} variant="contained" disabled={passwordSaving}>
+            {passwordSaving ? 'Saving...' : 'Update Password'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }
