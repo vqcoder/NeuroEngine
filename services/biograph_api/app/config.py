@@ -84,8 +84,9 @@ class Settings(BaseSettings):
     # Security settings
     api_token_required: bool = True
     rate_limit_rpm: int = 120
-    # Supabase Auth — set SUPABASE_JWT_SECRET from Supabase dashboard → Settings → API
-    supabase_jwt_secret: str = ""
+    # Supabase Auth — set SUPABASE_URL to enable JWT verification via JWKS.
+    # SUPABASE_JWT_SECRET is no longer needed — ES256 JWTs are verified
+    # using the public key fetched from {supabase_url}/auth/v1/.well-known/jwks.json.
     supabase_url: str = ""
 
     @property
