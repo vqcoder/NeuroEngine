@@ -103,6 +103,9 @@ export async function GET(request: Request, context: Context) {
       : null;
   const dialEnabled = process.env.STUDY_DIAL_ENABLED === 'true';
   const requireWebcam = process.env.STUDY_REQUIRE_WEBCAM === 'true';
+  const micEnabled = process.env.STUDY_MIC_ENABLED === 'true';
+  // Enable client-side MediaPipe extraction: ENABLE_CLIENT_EXTRACTION=true in env vars
+  const clientExtractionEnabled = process.env.ENABLE_CLIENT_EXTRACTION === 'true';
 
   return NextResponse.json({
     studyId,
@@ -111,6 +114,8 @@ export async function GET(request: Request, context: Context) {
     videoUrl,
     originalVideoUrl,
     dialEnabled,
-    requireWebcam
+    requireWebcam,
+    micEnabled,
+    clientExtractionEnabled
   });
 }

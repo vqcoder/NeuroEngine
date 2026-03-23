@@ -2,28 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  AnnotationMarker,
-  DialSample,
-  FramePointer,
-  QualitySample,
-  SessionQualitySummary,
-  SessionUploadPayload,
-  SurveyResponse,
-  TimelineEvent,
-  TraceRow,
-  UploadFrame,
+  type DialSample,
+  type SurveyResponse,
   uploadPayloadSchema
 } from '@/lib/schema';
 import { VideoTimeTracker } from '@/lib/videoClock';
-import {
-  brightnessScore,
-  blurScore,
-  computeFpsStability,
-  computeQualityScore,
-  computeTrackingConfidence,
-  detectLowConfidenceWindows,
-  detectQualityFlags
-} from '@/lib/qualityMetrics';
 import {
   WATCHLAB_LIBRARY_ID,
   buildStudyHref,
@@ -36,37 +19,17 @@ import {
   type StudyConfig,
   type FrontendDiagnosticSeverity,
   type StudyStage,
-  type WebcamStatus,
-  type BrowserFaceDetectionResult,
-  type QualityState,
-  type FrameCounterState,
   type MarkerType,
-  type SurveyAnalyticsHighlightCategory,
-  type SurveyAnalyticsHighlight,
-  markerTypes,
-  markerLabels,
-  defaultTraceAu,
-  QUALITY_SAMPLE_INTERVAL_MS,
-  QUALITY_SAMPLE_WINDOW_MS,
-  TRACE_DEFAULT_BLINK_BASELINE_RATE,
-  clampNumber,
   DEFAULT_QUALITY,
-  MAX_STORED_FRAMES,
   emptyConfig
 } from '@/lib/studyTypes';
 import {
   saveParticipantInfo,
   readParticipantInfo,
-  readSeenStudyIds,
-  markStudySeen,
-  pickUnseenVideo,
   safeUuid,
   maybeUuid,
   parseSurveyScore,
-  parseSequenceIndex,
-  parseEntryId,
   isPlaybackTelemetryStage,
-  collectBrowserMetadata,
   applyCanonicalLibraryParams,
   looksLikeWebPageUrl,
   unwrapHlsProxySourceUrl,
@@ -75,19 +38,19 @@ import {
   getDefaultStudyFallbackUrl,
   isGithubHostedVideoUrl,
   mapToProxyAssetUrl,
-  normalizeLegacyAssetUrl,
-  VIDEO_ASSET_PROXY_PATH,
-  VIDEO_HLS_PROXY_PATH,
-  VIDEO_ASSET_FILENAME_PATTERN,
-  LEGACY_VIDEO_ASSET_ORIGIN
+  normalizeLegacyAssetUrl
 } from '@/lib/studyHelpers';
 import { buildSurveyAnalyticsHighlights } from '@/lib/surveyAnalytics';
-import { buildCanonicalTraceRows } from '@/lib/traceRows';
 import StudyOnboarding from './components/StudyOnboarding';
 import StudyCameraCheck from './components/StudyCameraCheck';
 import StudyAnnotation from './components/StudyAnnotation';
 import StudySurvey from './components/StudySurvey';
 import StudyCompletion from './components/StudyCompletion';
+import { useTimeline } from './hooks/useTimeline';
+import { useWebcam } from './hooks/useWebcam';
+import { useSessionUpload } from './hooks/useSessionUpload';
+import { useAudioReaction } from './hooks/useAudioReaction';
+import { useClientExtraction } from './hooks/useClientExtraction';
 
 
 export default function StudyClient({ studyId }: { studyId: string }) {
@@ -106,19 +69,14 @@ export default function StudyClient({ studyId }: { studyId: string }) {
   const [sessionId] = useState(() => safeUuid());
   const [participantName, setParticipantName] = useState('');
   const [participantEmail, setParticipantEmail] = useState('');
-  const [webcamStatus, setWebcamStatus] = useState<WebcamStatus>('idle');
   const [webcamBypassed, setWebcamBypassed] = useState(false);
-  const [quality, setQuality] = useState<QualityState>(DEFAULT_QUALITY);
-  const [capturedFrameCount, setCapturedFrameCount] = useState(0);
 
-  const [videoTimeMs, setVideoTimeMs] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [videoCompleted, setVideoCompleted] = useState(false);
   const [firstPassEnded, setFirstPassEnded] = useState(false);
-  const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
-  const [uploadStatus, setUploadStatus] = useState<string>('');
-  const [dashboardUrl, setDashboardUrl] = useState<string | null>(null);
   const [videoError, setVideoError] = useState<string | null>(null);
+  const [endingEarly, setEndingEarly] = useState(false);
+  const endedEarlyRef = useRef<{ lastVideoTimeMs: number } | null>(null);
   const [nextStudyHref, setNextStudyHref] = useState<string | null>(null);
   const [nextStudyTitle, setNextStudyTitle] = useState<string | null>(null);
   const [nextVideoChoice, setNextVideoChoice] = useState<{ item: VideoLibraryItem; href: string } | null>(null);
@@ -130,8 +88,6 @@ export default function StudyClient({ studyId }: { studyId: string }) {
   const [audioCheckPlayed, setAudioCheckPlayed] = useState(false);
   const [audioConfirmed, setAudioConfirmed] = useState(false);
 
-  const [annotationMarkers, setAnnotationMarkers] = useState<AnnotationMarker[]>([]);
-  const [annotationSkipped, setAnnotationSkipped] = useState(false);
   const [annotationNoteDraft, setAnnotationNoteDraft] = useState('');
   const [annotationCursorMs, setAnnotationCursorMs] = useState(0);
   const [annotationDurationMs, setAnnotationDurationMs] = useState(0);
@@ -140,50 +96,18 @@ export default function StudyClient({ studyId }: { studyId: string }) {
   const [surveyContentClarity, setSurveyContentClarity] = useState('');
   const [surveyAdditionalComments, setSurveyAdditionalComments] = useState('');
 
+  // Shared refs that hooks depend on
   const studyVideoRef = useRef<HTMLVideoElement | null>(null);
-  const webcamVideoRef = useRef<HTMLVideoElement | null>(null);
-  const qualityCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const captureCanvasRef = useRef<HTMLCanvasElement | null>(null);
-
-  const streamRef = useRef<MediaStream | null>(null);
-  const qualityLoopTimerRef = useRef<number | null>(null);
-  const frameCaptureTimerRef = useRef<number | null>(null);
-  const dialSampleTimerRef = useRef<number | null>(null);
-  const dialValueRef = useRef(dialValue);
-
-  const frameCounterRef = useRef<FrameCounterState>({
-    active: false,
-    frames: 0,
-    lastSampleMs: 0,
-    fps: 0,
-    sampleTimerId: null,
-    callbackHandle: null,
-    callbackMode: null
-  });
-
-  const faceDetectorRef = useRef<{
-    detect: (input: HTMLVideoElement) => Promise<BrowserFaceDetectionResult[]>;
-  } | null>(null);
-  const framesRef = useRef<UploadFrame[]>([]);
-  const framePointersRef = useRef<FramePointer[]>([]);
-  const dialSamplesRef = useRef<DialSample[]>([]);
-  const qualitySamplesRef = useRef<QualitySample[]>([]);
-  const qualityCheckInFlightRef = useRef(false);
-  const recentFpsRef = useRef<number[]>([]);
-  const recentFaceVisibleRef = useRef<boolean[]>([]);
-  const recentHeadPoseValidRef = useRef<boolean[]>([]);
-  const timelineRef = useRef<TimelineEvent[]>([]);
-  const annotationMarkersRef = useRef<AnnotationMarker[]>([]);
-  const annotationSkippedRef = useRef(false);
-
   const videoTimeTrackerRef = useRef(new VideoTimeTracker());
   const monotonicClientTimeRef = useRef(0);
   const lastObservedVideoTimeRef = useRef(0);
+  const stageRef = useRef<StudyStage>('onboarding');
+
   const isMutedRef = useRef(false);
   const lastVolumeRef = useRef(1);
   const seekStartVideoTimeRef = useRef<number | null>(null);
-  const stageRef = useRef<StudyStage>('onboarding');
-  const uploadTriggeredRef = useRef(false);
+  const dialSampleTimerRef = useRef<number | null>(null);
+  const dialValueRef = useRef(dialValue);
   const hlsPlayerRef = useRef<{ destroy: () => void } | null>(null);
   const hlsSourceBoundRef = useRef<string | null>(null);
   const cloudHostingInFlightRef = useRef(false);
@@ -193,6 +117,99 @@ export default function StudyClient({ studyId }: { studyId: string }) {
   const defaultStudyFallbackUrl = getDefaultStudyFallbackUrl(studyId);
   const isDefaultStudyWithPinnedFallback =
     Boolean(defaultStudyFallbackUrl) && !looksLikeHlsUrl(defaultStudyFallbackUrl ?? '');
+
+  const resolveUploadSourceUrl = (): string | undefined => {
+    const candidates = [
+      config.videoUrl,
+      config.originalVideoUrl ?? '',
+      defaultStudyFallbackUrl ?? ''
+    ]
+      .map((value) => normalizeLegacyAssetUrl(value.trim()))
+      .filter((value, index, list) => value.length > 0 && list.indexOf(value) === index);
+
+    if (candidates.length === 0) {
+      return undefined;
+    }
+    const nonHls = candidates.find((value) => !looksLikeHlsUrl(value));
+    return nonHls ?? candidates[0];
+  };
+
+  // ── Hook: useTimeline ────────────────────────────────────────────────────
+  const {
+    timeline, annotationMarkers, annotationSkipped, videoTimeMs,
+    timelineRef, annotationMarkersRef, annotationSkippedRef, dialSamplesRef,
+    appendEvent, appendAbandonmentEvent, addAnnotationMarker, removeAnnotationMarker,
+    createTimelineEvent, sampleSyncedVideoTimeMs,
+    setAnnotationMarkers, setAnnotationSkipped, setVideoTimeMs,
+  } = useTimeline({
+    studyId,
+    sessionId,
+    videoId: config.videoId,
+    videoTimeTrackerRef,
+    studyVideoRef,
+    monotonicClientTimeRef,
+    lastObservedVideoTimeRef,
+    stageRef,
+  });
+
+  // ── Hook: useWebcam ──────────────────────────────────────────────────────
+  const {
+    webcamStatus, quality, capturedFrameCount,
+    streamRef, webcamVideoRef, captureCanvasRef, qualityCanvasRef,
+    framesRef, framePointersRef, qualitySamplesRef, frameCounterRef,
+    startWebcamChecks, stopWebcamCaptureLoops, startFrameCapture,
+    bypassWebcam, stopWebcam, startFrameCounter,
+    setWebcamStatus, setQuality, setCapturedFrameCount,
+    resetQualityBuffers,
+  } = useWebcam({
+    appendEvent,
+    sampleSyncedVideoTimeMs,
+    stageRef,
+    requireWebcam: config.requireWebcam,
+  });
+
+  // ── Hook: useClientExtraction ───────────────────────────────────────────
+  const {
+    extractionStatus, traceRows: clientTraceRows, frameCount: extractionFrameCount,
+    initWorker, processFrame: processExtractionFrame, terminateWorker,
+  } = useClientExtraction();
+  const extractionCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const extractionTimerRef = useRef<number | null>(null);
+
+  // ── Hook: useSessionUpload ───────────────────────────────────────────────
+  const {
+    uploadStatus, dashboardUrl, uploadTriggeredRef,
+    uploadSession, setUploadStatus, buildPayload,
+  } = useSessionUpload({
+    studyId,
+    participantId,
+    participantName,
+    participantEmail,
+    sessionId,
+    videoId: config.videoId,
+    resolveUploadSourceUrl,
+    timelineRef,
+    framesRef,
+    framePointersRef,
+    dialSamplesRef,
+    qualitySamplesRef,
+    annotationMarkersRef,
+    annotationSkippedRef,
+    sampleSyncedVideoTimeMs,
+    appendEvent,
+    annotationDurationMs,
+    setStage,
+    setNextVideoChoice,
+    clientTraceRows,
+  });
+
+  // ── Hook: useAudioReaction ──────────────────────────────────────────────
+  const {
+    micStatus, micEnergyLevel, audioReactionCount,
+    startMicCapture, stopMicCapture,
+    pauseEnergyMonitoring, resumeEnergyMonitoring,
+    bypassMic,
+  } = useAudioReaction();
 
   const reportDiagnostic = ({
     eventType,
@@ -251,20 +268,16 @@ export default function StudyClient({ studyId }: { studyId: string }) {
 
   useEffect(() => {
     stageRef.current = stage;
+    // Scroll to top when entering an immersive stage so the video is visible.
+    if (stage === 'watch' || stage === 'annotation') {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
   }, [stage]);
 
 
   useEffect(() => {
     dialValueRef.current = dialValue;
   }, [dialValue]);
-
-  useEffect(() => {
-    annotationMarkersRef.current = annotationMarkers;
-  }, [annotationMarkers]);
-
-  useEffect(() => {
-    annotationSkippedRef.current = annotationSkipped;
-  }, [annotationSkipped]);
 
   const destroyHlsPlayer = () => {
     if (hlsPlayerRef.current) {
@@ -377,23 +390,6 @@ export default function StudyClient({ studyId }: { studyId: string }) {
     } finally {
       cloudHostingInFlightRef.current = false;
     }
-  };
-
-
-  const resolveUploadSourceUrl = (): string | undefined => {
-    const candidates = [
-      config.videoUrl,
-      config.originalVideoUrl ?? '',
-      defaultStudyFallbackUrl ?? ''
-    ]
-      .map((value) => normalizeLegacyAssetUrl(value.trim()))
-      .filter((value, index, list) => value.length > 0 && list.indexOf(value) === index);
-
-    if (candidates.length === 0) {
-      return undefined;
-    }
-    const nonHls = candidates.find((value) => !looksLikeHlsUrl(value));
-    return nonHls ?? candidates[0];
   };
 
   const pickRecoverySource = (...rawCandidates: Array<string | null | undefined>): string => {
@@ -810,7 +806,9 @@ export default function StudyClient({ studyId }: { studyId: string }) {
             videoUrl: nextVideoUrl,
             originalVideoUrl: nextOriginalVideoUrl,
             dialEnabled: payload.dialEnabled ?? false,
-            requireWebcam: payload.requireWebcam ?? false
+            requireWebcam: payload.requireWebcam ?? false,
+            micEnabled: payload.micEnabled ?? false,
+            clientExtractionEnabled: payload.clientExtractionEnabled ?? false
           });
 
         }
@@ -902,223 +900,6 @@ export default function StudyClient({ studyId }: { studyId: string }) {
     void ensurePlayableSource(video, config.videoUrl || '/sample.mp4');
   }, [stage, config.videoUrl]);
 
-  const nextMonotonicClientMs = () => {
-    const candidate = Math.max(0, Math.round(performance.now()));
-    const nextValue =
-      candidate > monotonicClientTimeRef.current
-        ? candidate
-        : monotonicClientTimeRef.current + 1;
-    monotonicClientTimeRef.current = nextValue;
-    return nextValue;
-  };
-
-  const pushRollingSample = <T,>(buffer: T[], value: T, maxSize = 16) => {
-    buffer.push(value);
-    while (buffer.length > maxSize) {
-      buffer.shift();
-    }
-  };
-
-  const computeMean = (values: number[]) => {
-    if (values.length === 0) {
-      return 0;
-    }
-    return values.reduce((total, value) => total + value, 0) / values.length;
-  };
-
-  const estimateBlurProxy = (
-    pixels: Uint8ClampedArray,
-    width: number,
-    height: number
-  ): number => {
-    if (width < 3 || height < 3) {
-      return 0;
-    }
-
-    const luminance = new Float32Array(width * height);
-    for (let i = 0, p = 0; i < luminance.length; i += 1, p += 4) {
-      const r = pixels[p];
-      const g = pixels[p + 1];
-      const b = pixels[p + 2];
-      luminance[i] = 0.299 * r + 0.587 * g + 0.114 * b;
-    }
-
-    let laplacianEnergy = 0;
-    let sampleCount = 0;
-    for (let y = 1; y < height - 1; y += 1) {
-      for (let x = 1; x < width - 1; x += 1) {
-        const center = y * width + x;
-        const laplacian =
-          4 * luminance[center] -
-          luminance[center - 1] -
-          luminance[center + 1] -
-          luminance[center - width] -
-          luminance[center + width];
-        laplacianEnergy += laplacian * laplacian;
-        sampleCount += 1;
-      }
-    }
-
-    if (sampleCount === 0) {
-      return 0;
-    }
-    return Number((laplacianEnergy / sampleCount).toFixed(6));
-  };
-
-  const sampleSyncedVideoTimeMs = (allowBackward = false) => {
-    const video = studyVideoRef.current;
-    const measuredMs = video
-      ? Math.round(video.currentTime * 1000)
-      : videoTimeTrackerRef.current.getVideoTimeMs();
-    const nextMs = videoTimeTrackerRef.current.sample({
-      measuredVideoTimeMs: measuredMs,
-      clientMonotonicMs: performance.now(),
-      allowBackward,
-      isPlaying: Boolean(video && !video.paused && !video.ended),
-      playbackRate: video?.playbackRate ?? 1,
-      isBuffering: Boolean(video && !video.paused && !video.ended && video.readyState < 3)
-    });
-    setVideoTimeMs(nextMs);
-    return nextMs;
-  };
-
-  const createTimelineEvent = (
-    type: TimelineEvent['type'],
-    details?: TimelineEvent['details'],
-    allowBackward = false,
-    explicitVideoTimeMs?: number
-  ): TimelineEvent => {
-    const resolvedVideoTimeMs =
-      typeof explicitVideoTimeMs === 'number'
-        ? explicitVideoTimeMs
-        : sampleSyncedVideoTimeMs(allowBackward);
-
-    return {
-      type,
-      sessionId,
-      videoId: config.videoId || `video-${studyId}`,
-      wallTimeMs: Date.now(),
-      clientMonotonicMs: nextMonotonicClientMs(),
-      videoTimeMs: resolvedVideoTimeMs,
-      details
-    };
-  };
-
-  const appendEvent = (
-    type: TimelineEvent['type'],
-    details?: TimelineEvent['details'],
-    allowBackward = false,
-    explicitVideoTimeMs?: number
-  ) => {
-    const event = createTimelineEvent(type, details, allowBackward, explicitVideoTimeMs);
-    timelineRef.current = [...timelineRef.current, event];
-    setTimeline(timelineRef.current);
-    return event;
-  };
-
-  const appendAbandonmentEvent = (
-    reason: string,
-    sourceStage: StudyStage,
-    explicitVideoTimeMs?: number
-  ) => {
-    const measuredVideoTimeMs = sampleSyncedVideoTimeMs(true);
-    const lastVideoTimeMs =
-      typeof explicitVideoTimeMs === 'number'
-        ? explicitVideoTimeMs
-        : Math.max(lastObservedVideoTimeRef.current, measuredVideoTimeMs);
-
-    const details = {
-      reason,
-      sourceStage,
-      lastVideoTimeMs
-    };
-
-    appendEvent('abandonment', details, true, lastVideoTimeMs);
-    // Legacy compatibility for older downstream consumers.
-    appendEvent('session_incomplete', details, true, lastVideoTimeMs);
-    return lastVideoTimeMs;
-  };
-
-  const stopFrameCounter = () => {
-    const counter = frameCounterRef.current;
-    counter.active = false;
-    if (counter.sampleTimerId !== null) {
-      window.clearInterval(counter.sampleTimerId);
-      counter.sampleTimerId = null;
-    }
-
-    const webcamVideo = webcamVideoRef.current as HTMLVideoElement & {
-      cancelVideoFrameCallback?: (handle: number) => void;
-    };
-
-    if (counter.callbackHandle !== null) {
-      if (counter.callbackMode === 'video-frame' && webcamVideo?.cancelVideoFrameCallback) {
-        webcamVideo.cancelVideoFrameCallback(counter.callbackHandle);
-      } else if (counter.callbackMode === 'animation-frame') {
-        window.cancelAnimationFrame(counter.callbackHandle);
-      }
-      counter.callbackHandle = null;
-    }
-    counter.callbackMode = null;
-
-    counter.frames = 0;
-    counter.fps = 0;
-  };
-
-  const startFrameCounter = () => {
-    const webcamVideo = webcamVideoRef.current as HTMLVideoElement & {
-      requestVideoFrameCallback?: (cb: () => void) => number;
-    };
-    if (!webcamVideo) {
-      return;
-    }
-
-    stopFrameCounter();
-
-    const counter = frameCounterRef.current;
-    counter.active = true;
-    counter.frames = 0;
-    counter.lastSampleMs = performance.now();
-
-    const countFrame = () => {
-      if (!counter.active) {
-        return;
-      }
-      counter.frames += 1;
-      if (webcamVideo.requestVideoFrameCallback) {
-        counter.callbackHandle = webcamVideo.requestVideoFrameCallback(countFrame);
-        counter.callbackMode = 'video-frame';
-      } else {
-        counter.callbackHandle = window.requestAnimationFrame(countFrame);
-        counter.callbackMode = 'animation-frame';
-      }
-    };
-
-    countFrame();
-
-    counter.sampleTimerId = window.setInterval(() => {
-      const now = performance.now();
-      const elapsed = now - counter.lastSampleMs;
-      if (elapsed > 0) {
-        counter.fps = Number(((counter.frames * 1000) / elapsed).toFixed(1));
-      }
-      counter.frames = 0;
-      counter.lastSampleMs = now;
-    }, 1000);
-  };
-
-  const stopWebcamCaptureLoops = () => {
-    if (qualityLoopTimerRef.current !== null) {
-      window.clearInterval(qualityLoopTimerRef.current);
-      qualityLoopTimerRef.current = null;
-    }
-    if (frameCaptureTimerRef.current !== null) {
-      window.clearInterval(frameCaptureTimerRef.current);
-      frameCaptureTimerRef.current = null;
-    }
-    stopFrameCounter();
-  };
-
   const stopDialSampling = () => {
     if (dialSampleTimerRef.current !== null) {
       window.clearInterval(dialSampleTimerRef.current);
@@ -1126,20 +907,15 @@ export default function StudyClient({ studyId }: { studyId: string }) {
     }
   };
 
-  const stopWebcam = () => {
-    stopWebcamCaptureLoops();
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-    if (webcamVideoRef.current) {
-      webcamVideoRef.current.srcObject = null;
-    }
-  };
-
   useEffect(() => {
     return () => {
       stopWebcam();
+      stopMicCapture();
+      if (extractionTimerRef.current !== null) {
+        window.clearInterval(extractionTimerRef.current);
+        extractionTimerRef.current = null;
+      }
+      terminateWorker();
       stopDialSampling();
       destroyHlsPlayer();
     };
@@ -1183,388 +959,6 @@ export default function StudyClient({ studyId }: { studyId: string }) {
     };
   }, [isPlaying, config.dialEnabled, dialModeEnabled, stage]);
 
-  const runQualityCheck = async () => {
-    if (qualityCheckInFlightRef.current) {
-      return;
-    }
-
-    const webcamVideo = webcamVideoRef.current;
-    const canvas = qualityCanvasRef.current;
-
-    if (!webcamVideo || !canvas || webcamVideo.readyState < 2) {
-      return;
-    }
-
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    if (!ctx) {
-      return;
-    }
-
-    qualityCheckInFlightRef.current = true;
-    try {
-      const sampleWidth = 64;
-      const sampleHeight = 48;
-      canvas.width = sampleWidth;
-      canvas.height = sampleHeight;
-      ctx.drawImage(webcamVideo, 0, 0, sampleWidth, sampleHeight);
-      const pixels = ctx.getImageData(0, 0, sampleWidth, sampleHeight).data;
-
-      let sum = 0;
-      for (let i = 0; i < pixels.length; i += 4) {
-        const r = pixels[i];
-        const g = pixels[i + 1];
-        const b = pixels[i + 2];
-        sum += 0.299 * r + 0.587 * g + 0.114 * b;
-      }
-      const brightness = Number((sum / (sampleWidth * sampleHeight)).toFixed(1));
-      const blur = estimateBlurProxy(pixels, sampleWidth, sampleHeight);
-      const litScore = brightnessScore(brightness);
-      const sharpnessScore = blurScore(blur);
-
-      let faceDetected = false;
-      let faceOk = false;
-      let headPoseValid = false;
-      let occlusionScore = 1;
-      let centerOffset = 1;
-      let borderTouchRatio = 1;
-      let faceAreaRatio = 0;
-      const notes: string[] = [];
-      let faceDetectionAvailable = true;
-      const FaceDetectorCtor = (
-        window as unknown as {
-          FaceDetector?: new () => {
-            detect: (input: HTMLVideoElement) => Promise<
-              Array<{
-                boundingBox?: {
-                  x: number;
-                  y: number;
-                  width: number;
-                  height: number;
-                };
-              }>
-            >;
-          };
-        }
-      ).FaceDetector;
-
-      if (FaceDetectorCtor) {
-        if (!faceDetectorRef.current) {
-          faceDetectorRef.current = new FaceDetectorCtor();
-        }
-        try {
-          const faces = await faceDetectorRef.current.detect(webcamVideo);
-          faceDetected = faces.length > 0;
-          const firstFace = faces[0];
-          const box = firstFace?.boundingBox;
-          if (box && box.width > 0 && box.height > 0) {
-            faceAreaRatio = Math.max(
-              0,
-              Math.min((box.width * box.height) / (sampleWidth * sampleHeight), 1)
-            );
-            const centerX = box.x + box.width / 2;
-            const centerY = box.y + box.height / 2;
-            const dx = Math.abs(centerX - sampleWidth / 2) / Math.max(sampleWidth / 2, 1);
-            const dy = Math.abs(centerY - sampleHeight / 2) / Math.max(sampleHeight / 2, 1);
-            centerOffset = Math.max(0, Math.min((dx + dy) / 2, 1));
-
-            let touches = 0;
-            const marginX = sampleWidth * 0.04;
-            const marginY = sampleHeight * 0.04;
-            if (box.x <= marginX) {
-              touches += 1;
-            }
-            if (box.x + box.width >= sampleWidth - marginX) {
-              touches += 1;
-            }
-            if (box.y <= marginY) {
-              touches += 1;
-            }
-            if (box.y + box.height >= sampleHeight - marginY) {
-              touches += 1;
-            }
-            borderTouchRatio = touches / 4;
-          }
-          headPoseValid =
-            faceDetected &&
-            centerOffset < 0.35 &&
-            faceAreaRatio > 0.06 &&
-            borderTouchRatio < 0.5;
-          const smallFacePenalty = Math.max(0, Math.min((0.06 - faceAreaRatio) / 0.06, 1));
-          occlusionScore = Math.max(
-            0,
-            Math.min(0.55 * borderTouchRatio + 0.45 * smallFacePenalty, 1)
-          );
-        } catch {
-          notes.push('Face detection call failed; reposition your face in view.');
-        }
-      } else {
-        faceDetectionAvailable = false;
-        faceDetected = true;
-        headPoseValid = true;
-        occlusionScore = 0.4;
-      }
-
-      const fps = frameCounterRef.current.fps;
-      pushRollingSample(recentFpsRef.current, fps, 20);
-      pushRollingSample(recentFaceVisibleRef.current, faceDetected, 20);
-      pushRollingSample(recentHeadPoseValidRef.current, headPoseValid, 20);
-
-      const fpsStability = computeFpsStability(recentFpsRef.current);
-      const faceVisiblePct = computeMean(
-        recentFaceVisibleRef.current.map((value) => (value ? 1 : 0))
-      );
-      const headPoseValidPct = computeMean(
-        recentHeadPoseValidRef.current.map((value) => (value ? 1 : 0))
-      );
-      const qualityScore = computeQualityScore({
-        brightness,
-        blur,
-        fpsStability,
-        faceVisiblePct,
-        occlusionScore,
-        headPoseValidPct
-      });
-      const trackingConfidence = computeTrackingConfidence({
-        faceVisiblePct,
-        headPoseValidPct,
-        fpsStability,
-        qualityScore,
-        occlusionScore
-      });
-      const qualityFlags = detectQualityFlags({
-        brightness,
-        brightnessScore: litScore,
-        blurScore: sharpnessScore,
-        faceVisiblePct,
-        headPoseValidPct
-      });
-
-      const brightnessOk = litScore >= 0.45;
-      const fpsOk = fps >= 8 || fpsStability >= 0.45;
-      faceOk = faceDetected && faceVisiblePct >= 0.5;
-      const pass =
-        brightnessOk &&
-        fpsOk &&
-        faceOk &&
-        qualityScore >= 0.45 &&
-        !qualityFlags.includes('face_lost');
-
-      if (qualityFlags.includes('low_light')) {
-        notes.push('Increase front lighting.');
-      }
-      if (qualityFlags.includes('blur')) {
-        notes.push('Camera looks blurry. Clean lens or steady the device.');
-      }
-      if (qualityFlags.includes('face_lost')) {
-        notes.push('Keep your face centered and visible in frame.');
-      }
-      if (qualityFlags.includes('high_yaw_pitch') && faceDetectionAvailable) {
-        notes.push('Face angle is too steep. Face the screen more directly.');
-      }
-      if (!fpsOk) {
-        notes.push('Camera FPS is unstable; close CPU-heavy apps.');
-      }
-      if (!pass && notes.length === 0) {
-        notes.push('Adjust camera position and lighting, then retry.');
-      }
-
-      const qualitySample: QualitySample = {
-        id: safeUuid(),
-        wallTimeMs: Date.now(),
-        videoTimeMs: sampleSyncedVideoTimeMs(false),
-        sampleWindowMs: QUALITY_SAMPLE_WINDOW_MS,
-        brightness,
-        brightnessScore: litScore,
-        blur,
-        blurScore: sharpnessScore,
-        fps,
-        fpsStability,
-        faceDetected,
-        faceVisiblePct: Number(faceVisiblePct.toFixed(6)),
-        headPoseValidPct: Number(headPoseValidPct.toFixed(6)),
-        occlusionScore: Number(occlusionScore.toFixed(6)),
-        qualityScore,
-        trackingConfidence,
-        qualityFlags
-      };
-      qualitySamplesRef.current.push(qualitySample);
-      if (qualitySamplesRef.current.length > 1200) {
-        qualitySamplesRef.current.shift();
-      }
-
-      const updated: QualityState = {
-        brightness,
-        brightnessScore: litScore,
-        blur,
-        blurScore: sharpnessScore,
-        brightnessOk,
-        faceDetected,
-        faceVisiblePct: qualitySample.faceVisiblePct,
-        headPoseValidPct: qualitySample.headPoseValidPct,
-        occlusionScore: qualitySample.occlusionScore,
-        faceOk,
-        fps,
-        fpsStability,
-        fpsOk,
-        trackingConfidence,
-        qualityScore,
-        pass,
-        qualityFlags,
-        notes
-      };
-
-      setQuality(updated);
-
-      appendEvent('quality_check', {
-        brightness,
-        brightnessScore: litScore,
-        blur,
-        blurScore: sharpnessScore,
-        brightnessOk,
-        faceDetected,
-        faceVisiblePct: qualitySample.faceVisiblePct,
-        headPoseValidPct: qualitySample.headPoseValidPct,
-        occlusionScore: qualitySample.occlusionScore,
-        faceOk,
-        fps,
-        fpsStability,
-        fpsOk,
-        pass,
-        qualityScore,
-        trackingConfidence,
-        qualityFlags
-      }, false, qualitySample.videoTimeMs);
-    } finally {
-      qualityCheckInFlightRef.current = false;
-    }
-  };
-
-  const startFrameCapture = () => {
-    const canvas = captureCanvasRef.current;
-    if (!canvas) {
-      return;
-    }
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      return;
-    }
-
-    canvas.width = 224;
-    canvas.height = 224;
-
-    if (frameCaptureTimerRef.current !== null) {
-      window.clearInterval(frameCaptureTimerRef.current);
-    }
-
-    frameCaptureTimerRef.current = window.setInterval(() => {
-      if (!streamRef.current) {
-        return;
-      }
-      const webcamVideo = webcamVideoRef.current;
-      if (!webcamVideo || webcamVideo.readyState < 2) {
-        return;
-      }
-
-      ctx.drawImage(webcamVideo, 0, 0, 224, 224);
-      const jpegData = canvas.toDataURL('image/jpeg', 0.7).split(',')[1] ?? '';
-      const timestampMs = Date.now();
-      const syncedVideoTimeMs = sampleSyncedVideoTimeMs(false);
-
-      if (framesRef.current.length < MAX_STORED_FRAMES) {
-        framesRef.current.push({
-          id: safeUuid(),
-          timestampMs,
-          videoTimeMs: syncedVideoTimeMs,
-          jpegBase64: jpegData
-        });
-      } else {
-        framePointersRef.current.push({
-          id: safeUuid(),
-          timestampMs,
-          videoTimeMs: syncedVideoTimeMs,
-          pointer: `memory-frame-${framesRef.current.length + framePointersRef.current.length}`
-        });
-      }
-      setCapturedFrameCount(framesRef.current.length + framePointersRef.current.length);
-    }, 200);
-  };
-
-  const startWebcamChecks = async () => {
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setWebcamStatus('denied');
-      setQuality({
-        ...DEFAULT_QUALITY,
-        notes: ['This browser does not support webcam capture.']
-      });
-      appendEvent('webcam_denied', { reason: 'unsupported' });
-      return;
-    }
-
-    setWebcamStatus('requesting');
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: {
-          width: { ideal: 640 },
-          height: { ideal: 480 },
-          frameRate: { ideal: 30, min: 10 }
-        }
-      });
-
-      streamRef.current = stream;
-
-      // Watchdog: detect unexpected stream loss mid-session and recover.
-      stream.getTracks().forEach((track) => {
-        track.addEventListener('ended', () => {
-          if (stageRef.current === 'watch' || stageRef.current === 'camera') {
-            appendEvent('webcam_device_lost', { trackKind: track.kind });
-            setWebcamStatus('denied');
-            setQuality({ ...DEFAULT_QUALITY, notes: ['Camera disconnected. Please reconnect and retry.'] });
-            stopWebcamCaptureLoops();
-            // Auto-retry once after brief delay to handle temporary device interrupts.
-            setTimeout(() => {
-              if (stageRef.current === 'watch' || stageRef.current === 'camera') {
-                void startWebcamChecks();
-              }
-            }, 2000);
-          }
-        });
-      });
-
-      const webcamVideo = webcamVideoRef.current;
-      if (webcamVideo) {
-        webcamVideo.srcObject = stream;
-        await webcamVideo.play();
-      }
-
-      setWebcamStatus('granted');
-      appendEvent('webcam_granted');
-
-      startFrameCounter();
-      await runQualityCheck();
-
-      qualityLoopTimerRef.current = window.setInterval(() => {
-        runQualityCheck().catch(() => {
-          // Keep sampling even if one iteration fails.
-        });
-      }, QUALITY_SAMPLE_INTERVAL_MS);
-
-      startFrameCapture();
-    } catch (error) {
-      setWebcamStatus('denied');
-      setQuality({
-        ...DEFAULT_QUALITY,
-        notes: [
-          error instanceof Error ? error.message : 'Webcam permission was denied or unavailable.'
-        ]
-      });
-      appendEvent('webcam_denied', {
-        reason: error instanceof Error ? error.message : 'unknown'
-      });
-    }
-  };
 
   const onAgree = async () => {
     setConsented(true);
@@ -1584,14 +978,15 @@ export default function StudyClient({ studyId }: { studyId: string }) {
     setDialValue(50);
     dialSamplesRef.current = [];
     qualitySamplesRef.current = [];
-    recentFpsRef.current = [];
-    recentFaceVisibleRef.current = [];
-    recentHeadPoseValidRef.current = [];
+    resetQualityBuffers();
     setDialSampleCount(0);
     if (typeof window !== 'undefined') {
       saveParticipantInfo(window.localStorage, participantName.trim(), participantEmail.trim());
     }
     appendEvent('consent_accepted');
+    if (config.clientExtractionEnabled) {
+      initWorker();
+    }
     await startWebcamChecks();
   };
 
@@ -1623,9 +1018,7 @@ export default function StudyClient({ studyId }: { studyId: string }) {
     setDialValue(50);
     dialSamplesRef.current = [];
     qualitySamplesRef.current = [];
-    recentFpsRef.current = [];
-    recentFaceVisibleRef.current = [];
-    recentHeadPoseValidRef.current = [];
+    resetQualityBuffers();
     setDialSampleCount(0);
     appendEvent('consent_accepted');
     // Start webcam silently — don't wait for quality pass before showing video
@@ -1647,34 +1040,13 @@ export default function StudyClient({ studyId }: { studyId: string }) {
     framesRef.current = [];
     framePointersRef.current = [];
     qualitySamplesRef.current = [];
-    recentFpsRef.current = [];
-    recentFaceVisibleRef.current = [];
-    recentHeadPoseValidRef.current = [];
+    resetQualityBuffers();
     await startWebcamChecks();
   };
 
   const onContinueWithoutWebcam = () => {
-    if (config.requireWebcam) {
-      return;
-    }
-    stopWebcam();
+    bypassWebcam();
     setWebcamBypassed(true);
-    setWebcamStatus('denied');
-    setQuality({
-      ...DEFAULT_QUALITY,
-      notes: ['Proceeding without webcam capture for this session.']
-    });
-    setCapturedFrameCount(0);
-    framesRef.current = [];
-    framePointersRef.current = [];
-    qualitySamplesRef.current = [];
-    recentFpsRef.current = [];
-    recentFaceVisibleRef.current = [];
-    recentHeadPoseValidRef.current = [];
-    appendEvent('webcam_denied', {
-      reason: 'participant_opted_out',
-      optionalPath: true
-    });
   };
 
   const playAudioCheckTone = async () => {
@@ -1706,7 +1078,7 @@ export default function StudyClient({ studyId }: { studyId: string }) {
     setAudioCheckPlayed(true);
   };
 
-  const onStartStudyVideo = () => {
+  const beginWatchStage = () => {
     setStage('watch');
     setVideoError(null);
     setAnnotationSkipped(false);
@@ -1722,11 +1094,31 @@ export default function StudyClient({ studyId }: { studyId: string }) {
       'playback_started',
       {
         mode: 'passive_first_viewing',
-        webcamEnabled: !webcamBypassed
+        webcamEnabled: !webcamBypassed,
+        clientExtraction: config.clientExtractionEnabled && (extractionStatus === 'ready' || extractionStatus === 'running'),
       },
       true,
       0
     );
+
+    // Start client extraction frame processing interval (5fps)
+    if (config.clientExtractionEnabled && (extractionStatus === 'ready' || extractionStatus === 'running')) {
+      if (extractionTimerRef.current !== null) {
+        window.clearInterval(extractionTimerRef.current);
+      }
+      extractionTimerRef.current = window.setInterval(() => {
+        const webcamVideo = webcamVideoRef.current;
+        const canvas = extractionCanvasRef.current;
+        if (webcamVideo && canvas) {
+          processExtractionFrame(webcamVideo, canvas, sampleSyncedVideoTimeMs(false));
+        }
+      }, 200);
+    }
+
+    // Resume mic reaction detection for the watch stage (paused during camera check)
+    if (micStatus === 'granted') {
+      resumeEnergyMonitoring(appendEvent);
+    }
 
     window.setTimeout(() => {
       const video = studyVideoRef.current;
@@ -1745,6 +1137,18 @@ export default function StudyClient({ studyId }: { studyId: string }) {
           );
         });
     }, 0);
+  };
+
+  const onStartStudyVideo = () => {
+    beginWatchStage();
+  };
+
+  const onMicAllow = async () => {
+    await startMicCapture(appendEvent);
+  };
+
+  const onMicSkip = () => {
+    bypassMic(appendEvent);
   };
 
   useEffect(() => {
@@ -1884,6 +1288,12 @@ export default function StudyClient({ studyId }: { studyId: string }) {
 
   const toSurveyStage = () => {
     setIsPlaying(false);
+    stopMicCapture();
+    if (extractionTimerRef.current !== null) {
+      window.clearInterval(extractionTimerRef.current);
+      extractionTimerRef.current = null;
+    }
+    terminateWorker();
     // Ensure videoCompleted is set — the user has progressed past the video
     // stage (either via onEnded or annotation skip/continue) so the survey
     // submit button must be enabled once scores are entered.
@@ -1900,50 +1310,12 @@ export default function StudyClient({ studyId }: { studyId: string }) {
   };
 
   const addMarker = (markerType: MarkerType) => {
-    const videoTimeForMarker = getCurrentAnnotationTimeMs();
-    const note = annotationNoteDraft.trim();
-    const marker: AnnotationMarker = {
-      id: safeUuid(),
-      sessionId,
-      videoId: config.videoId || `video-${studyId}`,
-      markerType,
-      videoTimeMs: videoTimeForMarker,
-      note: note.length > 0 ? note : null,
-      createdAt: new Date().toISOString()
-    };
-
-    setAnnotationMarkers((prev) => [...prev, marker]);
-    setAnnotationSkipped(false);
+    addAnnotationMarker(markerType, annotationNoteDraft, getCurrentAnnotationTimeMs);
     setAnnotationNoteDraft('');
-
-    appendEvent(
-      'annotation_tag_set',
-      {
-        markerType,
-        markerLabel: markerLabels[markerType],
-        videoTimeMs: videoTimeForMarker,
-        hasNote: Boolean(marker.note)
-      },
-      true,
-      videoTimeForMarker
-    );
   };
 
   const removeMarker = (markerId: string) => {
-    const marker = annotationMarkersRef.current.find((entry) => entry.id === markerId);
-    setAnnotationMarkers((prev) => prev.filter((entry) => entry.id !== markerId));
-    if (marker) {
-      appendEvent(
-        'annotation_tag_set',
-        {
-          action: 'removed',
-          markerType: marker.markerType,
-          videoTimeMs: marker.videoTimeMs
-        },
-        true,
-        marker.videoTimeMs
-      );
-    }
+    removeAnnotationMarker(markerId);
   };
 
   const seekAnnotationTimeline = (nextVideoTimeMs: number) => {
@@ -2012,242 +1384,91 @@ export default function StudyClient({ studyId }: { studyId: string }) {
     [quality.notes]
   );
 
-  const buildSessionQualitySummary = (): SessionQualitySummary => {
-    const samples = qualitySamplesRef.current;
-    if (samples.length === 0) {
-      return {
-        sampleCount: 0,
-        meanTrackingConfidence: 0,
-        meanQualityScore: 0,
-        lowConfidenceWindowCount: 0,
-        usableSeconds: 0
-      };
-    }
-
-    const meanTrackingConfidence =
-      samples.reduce((total, sample) => total + sample.trackingConfidence, 0) / samples.length;
-    const meanQualityScore =
-      samples.reduce((total, sample) => total + sample.qualityScore, 0) / samples.length;
-    const lowWindows = detectLowConfidenceWindows(samples);
-    const durationMs = Math.max(
-      ...samples.map((sample) => sample.videoTimeMs + sample.sampleWindowMs),
-      0
-    );
-    const lowDurationMs = lowWindows.reduce(
-      (total, window) => total + Math.max(window.endVideoTimeMs - window.startVideoTimeMs, 0),
-      0
-    );
-    const usableSeconds = Math.max(durationMs - lowDurationMs, 0) / 1000;
-
-    return {
-      sampleCount: samples.length,
-      meanTrackingConfidence: Number(meanTrackingConfidence.toFixed(6)),
-      meanQualityScore: Number(meanQualityScore.toFixed(6)),
-      lowConfidenceWindowCount: lowWindows.length,
-      usableSeconds: Number(usableSeconds.toFixed(3))
-    };
-  };
-
-  const getCanonicalTraceRows = (): TraceRow[] =>
-    buildCanonicalTraceRows({
-      dialSamples: dialSamplesRef.current,
-      qualitySamples: qualitySamplesRef.current,
-      timeline: timelineRef.current,
-      annotationDurationMs
-    });
-
-  const buildPayload = (surveyResponses: SurveyResponse[]): SessionUploadPayload => {
-    const hasFrames = framesRef.current.length > 0;
-    const hasPointers = framePointersRef.current.length > 0;
-    const normalizedSourceUrl = resolveUploadSourceUrl();
-
-    if (!hasFrames && !hasPointers) {
-      framePointersRef.current.push({
-        id: safeUuid(),
-        timestampMs: Date.now(),
-        videoTimeMs: sampleSyncedVideoTimeMs(false),
-        pointer: 'no-webcam-data'
-      });
-    }
-
-    return {
-      studyId,
-      videoId: config.videoId,
-      sourceUrl: normalizedSourceUrl || undefined,
-      participantId,
-      participantName: participantName.trim() || undefined,
-      participantEmail: participantEmail.trim() || undefined,
-      browserMetadata: collectBrowserMetadata(),
-      eventTimeline: [...timelineRef.current],
-      dialSamples: dialSamplesRef.current,
-      traceRows: getCanonicalTraceRows(),
-      qualitySamples: qualitySamplesRef.current,
-      sessionQualitySummary: buildSessionQualitySummary(),
-      annotations: annotationMarkersRef.current,
-      annotationSkipped: annotationSkippedRef.current,
-      surveyResponses,
-      frames: framesRef.current,
-      framePointers: framePointersRef.current
-    };
-  };
-
-  const uploadSession = async (surveyResponses: SurveyResponse[]) => {
-    const payload = buildPayload(surveyResponses);
-
-    const validation = uploadPayloadSchema.safeParse(payload);
-    if (!validation.success) {
-      setUploadStatus('Upload blocked: payload failed local schema validation.');
-      return;
-    }
-
-    uploadTriggeredRef.current = true;
-    setUploadStatus('Uploading...');
-    setDashboardUrl(null);
-
-    const serialized = JSON.stringify(payload);
-    const MAX_ATTEMPTS = 3;
-    const RETRY_DELAYS_MS = [1000, 3000, 9000];
-    let lastError: Error = new Error('Upload failed');
-
-    const attemptUpload = async (attempt: number): Promise<Response> => {
-      if (attempt > 1) {
-        setUploadStatus(`Saving… retry ${attempt - 1} of ${MAX_ATTEMPTS - 1}`);
-        await new Promise<void>((resolve) => setTimeout(resolve, RETRY_DELAYS_MS[attempt - 2]));
-      }
-      return fetch('/api/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: serialized
-      });
-    };
-
-    try {
-      let response: Response | null = null;
-      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-        try {
-          const r = await attemptUpload(attempt);
-          if (!r.ok && r.status >= 500 && attempt < MAX_ATTEMPTS) {
-            lastError = new Error(`Upload failed (${r.status})`);
-            continue;
-          }
-          response = r;
-          break;
-        } catch (networkError) {
-          lastError = networkError instanceof Error ? networkError : new Error('Network error');
-          if (attempt < MAX_ATTEMPTS) {
-            continue;
-          }
-        }
-      }
-
-      if (!response) {
-        throw lastError;
-      }
-
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({})) as { error?: string };
-        throw new Error(body.error ?? `Upload failed (${response.status})`);
-      }
-
-      const body = await response.json();
-      const biographVideoId =
-        typeof body?.biograph?.videoId === 'string' ? body.biograph.videoId : undefined;
-      const dashboardLink =
-        typeof body?.biograph?.dashboardUrl === 'string' ? body.biograph.dashboardUrl : null;
-      const telemetryWarning =
-        typeof body?.biograph?.telemetryWarning === 'string' ? body.biograph.telemetryWarning : null;
-      const captureWarning =
-        typeof body?.biograph?.captureWarning === 'string' ? body.biograph.captureWarning : null;
-      const uploadWarnings = [telemetryWarning, captureWarning].filter(
-        (warning): warning is string => typeof warning === 'string' && warning.length > 0
-      );
-      const warningSuffix = uploadWarnings.length > 0 ? ` — ${uploadWarnings.join(' — ')}` : '';
-
-      setUploadStatus(
-        biographVideoId
-          ? `Upload complete: session ${body.sessionId} (video ${biographVideoId})${warningSuffix}`
-          : `Upload complete: session ${body.sessionId}${warningSuffix}`
-      );
-      setDashboardUrl(dashboardLink);
-      appendEvent('upload_success', { uploadedSessionId: body.sessionId });
-
-      const storage = typeof window !== 'undefined' ? window.localStorage : null;
-      markStudySeen(storage, studyId);
-      const next = pickUnseenVideo(storage, studyId);
-      if (next) {
-        setNextVideoChoice({ item: next.item, href: buildStudyHref(next.item, next.index) });
-        setStage('next_video');
-      } else {
-        setStage('complete');
-      }
-    } catch (error) {
-      setUploadStatus(
-        `Upload failed: ${error instanceof Error ? error.message : 'Unknown server error'}`
-      );
-      appendEvent('upload_failed', {
-        reason: error instanceof Error ? error.message : 'unknown'
-      });
-    }
-  };
-
   const finishAndUpload = async () => {
     if (overallEngagementScore === null || contentClarityScore === null) {
       setUploadStatus('Enter both scores as whole numbers between 1 and 5 before finishing.');
       return;
     }
 
-    appendEvent('survey_answered', {
-      markerCount: annotationMarkersRef.current.length,
-      annotationSkipped: annotationSkippedRef.current,
-      overallEngagement: overallEngagementScore,
-      contentClarity: contentClarityScore,
-      hasComment: surveyAdditionalComments.trim().length > 0
-    });
-    appendEvent('finish_clicked');
+    try {
+      setUploadStatus('Uploading...');
 
-    const surveyResponses: SurveyResponse[] = [
-      {
-        questionKey: 'annotation_status',
-        responseJson: {
-          annotation_skipped: annotationSkippedRef.current,
-          marker_count: annotationMarkersRef.current.length
-        }
-      },
-      {
-        questionKey: 'session_completion_status',
-        responseJson: {
-          status: 'completed',
-          session_id: sessionId
-        }
-      },
-      {
-        questionKey: 'overall_interest_likert',
-        responseNumber: overallEngagementScore
-      },
-      {
-        questionKey: 'recall_comprehension_likert',
-        responseNumber: contentClarityScore
-      },
-      {
-        questionKey: 'survey_score_inputs',
-        responseJson: {
-          overall_engagement: overallEngagementScore,
-          content_clarity: contentClarityScore
-        }
-      }
-    ];
+      const earlyEnd = endedEarlyRef.current;
 
-    if (surveyAdditionalComments.trim()) {
-      surveyResponses.push({
-        questionKey: 'post_annotation_comment',
-        responseText: surveyAdditionalComments.trim()
+      appendEvent('survey_answered', {
+        markerCount: annotationMarkersRef.current.length,
+        annotationSkipped: annotationSkippedRef.current,
+        overallEngagement: overallEngagementScore,
+        contentClarity: contentClarityScore,
+        hasComment: surveyAdditionalComments.trim().length > 0,
+        endedEarly: earlyEnd !== null
       });
-    }
+      appendEvent('finish_clicked');
 
-    await uploadSession(surveyResponses);
+      const surveyResponses: SurveyResponse[] = [
+        {
+          questionKey: 'annotation_status',
+          responseJson: {
+            annotation_skipped: annotationSkippedRef.current,
+            marker_count: annotationMarkersRef.current.length
+          }
+        },
+        {
+          questionKey: 'session_completion_status',
+          responseJson: earlyEnd
+            ? {
+                status: 'incomplete',
+                reason: 'user_ended_early',
+                session_id: sessionId,
+                last_video_time_ms: earlyEnd.lastVideoTimeMs
+              }
+            : {
+                status: 'completed',
+                session_id: sessionId
+              }
+        },
+        {
+          questionKey: 'overall_interest_likert',
+          responseNumber: overallEngagementScore
+        },
+        {
+          questionKey: 'recall_comprehension_likert',
+          responseNumber: contentClarityScore
+        },
+        {
+          questionKey: 'survey_score_inputs',
+          responseJson: {
+            overall_engagement: overallEngagementScore,
+            content_clarity: contentClarityScore
+          }
+        }
+      ];
+
+      if (surveyAdditionalComments.trim()) {
+        surveyResponses.push({
+          questionKey: 'post_annotation_comment',
+          responseText: surveyAdditionalComments.trim()
+        });
+      }
+
+      await uploadSession(surveyResponses);
+    } catch (error) {
+      console.error('[finishAndUpload] Unexpected error:', error);
+      setUploadStatus(
+        `Upload failed: ${error instanceof Error ? error.message : 'Unexpected error during submission.'}`
+      );
+    }
   };
 
-  const finishEarlyAndUpload = async () => {
+  const finishEarlyAndUpload = () => {
+    if (endingEarly) return;
+    setEndingEarly(true);
+
+    // Pause video immediately.
+    try {
+      studyVideoRef.current?.pause();
+    } catch { /* best-effort */ }
+
     const abandonmentVideoTimeMs = appendAbandonmentEvent(
       'user_ended_early',
       stageRef.current
@@ -2262,19 +1483,14 @@ export default function StudyClient({ studyId }: { studyId: string }) {
       stopWebcam();
     }
 
-    const surveyResponses: SurveyResponse[] = [
-      {
-        questionKey: 'session_completion_status',
-        responseJson: {
-          status: 'incomplete',
-          reason: 'user_ended_early',
-          session_id: sessionId,
-          last_video_time_ms: abandonmentVideoTimeMs
-        }
-      }
-    ];
+    // Remember that the session was ended early so finishAndUpload marks
+    // the completion status as incomplete.
+    endedEarlyRef.current = { lastVideoTimeMs: abandonmentVideoTimeMs };
 
-    await uploadSession(surveyResponses);
+    // Skip annotation, go straight to survey so the user can still rate.
+    annotationSkippedRef.current = true;
+    setAnnotationSkipped(true);
+    toSurveyStage();
   };
 
   useEffect(() => {
@@ -2473,12 +1689,20 @@ export default function StudyClient({ studyId }: { studyId: string }) {
         playAudioCheckTone={playAudioCheckTone}
         setAudioConfirmed={setAudioConfirmed}
         onStartStudyVideo={onStartStudyVideo}
+        micEnabled={config.micEnabled}
+        micStatus={micStatus}
+        micEnergyLevel={micEnergyLevel}
+        onMicAllow={onMicAllow}
+        onMicSkip={onMicSkip}
+        onMicConfirmed={() => pauseEnergyMonitoring()}
       />
     );
   }
 
+  const isImmersiveStage = stage === 'watch' || stage === 'annotation';
+
   return (
-    <main>
+    <main style={isImmersiveStage ? { padding: '12px 24px' } : undefined}>
       <div className="stack study-shell" data-testid="study-shell">
         <video
           ref={webcamVideoRef}
@@ -2492,33 +1716,44 @@ export default function StudyClient({ studyId }: { studyId: string }) {
         />
         <canvas ref={qualityCanvasRef} style={{ display: 'none' }} />
         <canvas ref={captureCanvasRef} style={{ display: 'none' }} />
+        <canvas ref={extractionCanvasRef} width={224} height={224} style={{ display: 'none' }} />
 
-        <div className="panel stack">
-          <h1>{loadingConfig ? 'Loading study...' : config.title}</h1>
-          <p>
-            Study ID: <code>{studyId}</code> | Session ID: <code>{sessionId}</code>
-          </p>
-          <p>
-            Participant ID: <code>{participantId}</code>
-          </p>
-          {configError ? <p className="status-bad">{configError}</p> : null}
-          <p>
-            Webcam: <strong>{webcamStatus}</strong>{' '}
-            <span className={qualityClass}>
-              {webcamStatus === 'granted'
-                ? quality.pass
-                  ? '(quality pass)'
-                  : '(quality fail)'
-                : ''}
-            </span>
-          </p>
-          <small>
-            Brightness: {quality.brightness.toFixed(1)} | Face: {quality.faceDetected ? 'yes' : 'no'} |
-            FPS: {quality.fps.toFixed(1)} | FPS stability: {(quality.fpsStability * 100).toFixed(0)}% |
-            Tracking confidence: {(quality.trackingConfidence * 100).toFixed(0)}% | Captured frames:{' '}
-            {capturedFrameCount}
-          </small>
-        </div>
+        {stage === 'watch' || stage === 'annotation' ? (
+          <div className="panel" style={{ padding: '10px 24px' }}>
+            <small>
+              {config.title} · Session <code>{sessionId.slice(0, 8)}</code> ·{' '}
+              Webcam: {webcamStatus === 'granted' ? (quality.pass ? '✓' : '⚠') : '—'} ·{' '}
+              Tracking: {(quality.trackingConfidence * 100).toFixed(0)}% · Frames: {capturedFrameCount}
+            </small>
+          </div>
+        ) : (
+          <div className="panel stack">
+            <h1>{loadingConfig ? 'Loading study...' : config.title}</h1>
+            <p>
+              Study ID: <code>{studyId}</code> | Session ID: <code>{sessionId}</code>
+            </p>
+            <p>
+              Participant ID: <code>{participantId}</code>
+            </p>
+            {configError ? <p className="status-bad">{configError}</p> : null}
+            <p>
+              Webcam: <strong>{webcamStatus}</strong>{' '}
+              <span className={qualityClass}>
+                {webcamStatus === 'granted'
+                  ? quality.pass
+                    ? '(quality pass)'
+                    : '(quality fail)'
+                  : ''}
+              </span>
+            </p>
+            <small>
+              Brightness: {quality.brightness.toFixed(1)} | Face: {quality.faceDetected ? 'yes' : 'no'} |
+              FPS: {quality.fps.toFixed(1)} | FPS stability: {(quality.fpsStability * 100).toFixed(0)}% |
+              Tracking confidence: {(quality.trackingConfidence * 100).toFixed(0)}% | Captured frames:{' '}
+              {capturedFrameCount}
+            </small>
+          </div>
+        )}
 
         {stage === 'watch' ? (
           <section className="panel stack immersive-stage" data-testid="watch-stage">
@@ -2870,8 +2105,8 @@ export default function StudyClient({ studyId }: { studyId: string }) {
               >
                 Pause
               </button>
-              <button onClick={finishEarlyAndUpload} data-testid="end-early-button">
-                End session early
+              <button onClick={finishEarlyAndUpload} disabled={endingEarly} data-testid="end-early-button">
+                {endingEarly ? 'Ending session…' : 'End session early'}
               </button>
             </div>
 
@@ -3020,6 +2255,7 @@ export default function StudyClient({ studyId }: { studyId: string }) {
             surveyContentClarity={surveyContentClarity}
             surveyAdditionalComments={surveyAdditionalComments}
             canFinishSession={canFinishSession}
+            uploadStatus={uploadStatus}
             setSurveyOverallEngagement={setSurveyOverallEngagement}
             setSurveyContentClarity={setSurveyContentClarity}
             setSurveyAdditionalComments={setSurveyAdditionalComments}

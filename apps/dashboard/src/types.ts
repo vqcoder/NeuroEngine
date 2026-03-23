@@ -90,7 +90,7 @@ export type AnnotationOverlayMarker = {
   cta_id?: string | null;
 };
 
-export type TelemetryOverlayKind = 'pause' | 'seek' | 'abandonment';
+export type TelemetryOverlayKind = 'pause' | 'seek' | 'abandonment' | 'audio_reaction';
 
 export type TelemetryOverlayMarker = {
   kind: TelemetryOverlayKind;
@@ -1119,4 +1119,25 @@ export type AnalystSessionsResponse = {
   sessions: AnalystSession[];
   total_sessions: number;
   last_updated_at: string | null;
+};
+
+export type StudyListItem = {
+  id: string;
+  name: string;
+  description: string | null;
+  created_at: string;
+  video_count: number;
+  session_count: number;
+  last_activity: string | null;
+};
+
+export type StudyDetail = {
+  id: string;
+  name: string;
+  description: string | null;
+  created_at: string;
+  videos: VideoCatalogItem[];
+  session_count: number;
+  completed_session_count: number;
+  participant_invite_path: string;
 };

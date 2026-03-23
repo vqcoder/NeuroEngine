@@ -1,0 +1,586 @@
+{
+    "available": true,
+    "session_count": 3,
+    "window_ms": 1000,
+    "windows": [
+        {
+            "video_time_ms": 0,
+            "synchrony_score": 0.994275,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 1000,
+            "synchrony_score": 0.998525,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 2000,
+            "synchrony_score": 0.996019,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 3000,
+            "synchrony_score": 0.993195,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 4000,
+            "synchrony_score": 0.981585,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 5000,
+            "synchrony_score": 0.997001,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 6000,
+            "synchrony_score": 0.982182,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 7000,
+            "synchrony_score": 0.996352,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 8000,
+            "synchrony_score": 0.997999,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 9000,
+            "synchrony_score": 0.992791,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 10000,
+            "synchrony_score": 0.986387,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 11000,
+            "synchrony_score": 0.996714,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 12000,
+            "synchrony_score": 0.99573,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 13000,
+            "synchrony_score": 0.995612,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 14000,
+            "synchrony_score": 0.995275,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 15000,
+            "synchrony_score": 0.99641,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 16000,
+            "synchrony_score": 0.991243,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 17000,
+            "synchrony_score": 0.991087,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 18000,
+            "synchrony_score": 0.9787,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 19000,
+            "synchrony_score": 0.978837,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 20000,
+            "synchrony_score": 0.985926,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 21000,
+            "synchrony_score": 0.991816,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 22000,
+            "synchrony_score": 0.973612,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 23000,
+            "synchrony_score": 0.98806,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 24000,
+            "synchrony_score": 0.987259,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 25000,
+            "synchrony_score": 0.987661,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 26000,
+            "synchrony_score": 0.971834,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 27000,
+            "synchrony_score": 0.995451,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 28000,
+            "synchrony_score": 0.982069,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 29000,
+            "synchrony_score": 0.986086,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 30000,
+            "synchrony_score": 0.984413,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 31000,
+            "synchrony_score": 0.994399,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 32000,
+            "synchrony_score": 0.996332,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 33000,
+            "synchrony_score": 0.998007,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 34000,
+            "synchrony_score": 0.98543,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 35000,
+            "synchrony_score": 0.989977,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 36000,
+            "synchrony_score": 0.999368,
+            "session_count": 3,
+            "is_tension_peak": true
+        },
+        {
+            "video_time_ms": 37000,
+            "synchrony_score": 0.967558,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 38000,
+            "synchrony_score": 0.980254,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 39000,
+            "synchrony_score": 0.989208,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 40000,
+            "synchrony_score": 0.974476,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 41000,
+            "synchrony_score": 0.991434,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 42000,
+            "synchrony_score": 0.986105,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 43000,
+            "synchrony_score": 0.984438,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 44000,
+            "synchrony_score": 0.97378,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 45000,
+            "synchrony_score": 0.979651,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 46000,
+            "synchrony_score": 0.983644,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 47000,
+            "synchrony_score": 0.982064,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 48000,
+            "synchrony_score": 0.984048,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 49000,
+            "synchrony_score": 0.989748,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 50000,
+            "synchrony_score": 0.991795,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 51000,
+            "synchrony_score": 0.98982,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 52000,
+            "synchrony_score": 0.99004,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 53000,
+            "synchrony_score": 0.987071,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 54000,
+            "synchrony_score": 0.998287,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 55000,
+            "synchrony_score": 0.990433,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 56000,
+            "synchrony_score": 0.990751,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 57000,
+            "synchrony_score": 0.993135,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 58000,
+            "synchrony_score": 0.993836,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 59000,
+            "synchrony_score": 0.989907,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 60000,
+            "synchrony_score": 0.990638,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 61000,
+            "synchrony_score": 0.995561,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 62000,
+            "synchrony_score": 0.997228,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 63000,
+            "synchrony_score": 0.978973,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 64000,
+            "synchrony_score": 0.998791,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 65000,
+            "synchrony_score": 0.990712,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 66000,
+            "synchrony_score": 0.989905,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 67000,
+            "synchrony_score": 0.984228,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 68000,
+            "synchrony_score": 0.987027,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 69000,
+            "synchrony_score": 0.994684,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 70000,
+            "synchrony_score": 0.994222,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 71000,
+            "synchrony_score": 0.995749,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 72000,
+            "synchrony_score": 0.988378,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 73000,
+            "synchrony_score": 0.975873,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 74000,
+            "synchrony_score": 0.984706,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 75000,
+            "synchrony_score": 0.975959,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 76000,
+            "synchrony_score": 0.982547,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 77000,
+            "synchrony_score": 0.99508,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 78000,
+            "synchrony_score": 0.992652,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 79000,
+            "synchrony_score": 0.981941,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 80000,
+            "synchrony_score": 0.987876,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 81000,
+            "synchrony_score": 0.987822,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 82000,
+            "synchrony_score": 0.992347,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 83000,
+            "synchrony_score": 0.989107,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 84000,
+            "synchrony_score": 0.990439,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 85000,
+            "synchrony_score": 0.995014,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 86000,
+            "synchrony_score": 0.988491,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 87000,
+            "synchrony_score": 0.987967,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 88000,
+            "synchrony_score": 0.99007,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 89000,
+            "synchrony_score": 0.987539,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 90000,
+            "synchrony_score": 0.997343,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 91000,
+            "synchrony_score": 0.995671,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 92000,
+            "synchrony_score": 0.994361,
+            "session_count": 3,
+            "is_tension_peak": false
+        },
+        {
+            "video_time_ms": 93000,
+            "synchrony_score": 0.975941,
+            "session_count": 3,
+            "is_tension_peak": false
+        }
+    ],
+    "summary": {
+        "peak_count": 1,
+        "mean_synchrony": 0.988829,
+        "max_synchrony": 0.999368,
+        "tension_peaks": [
+            {
+                "video_time_ms": 36000,
+                "synchrony_score": 0.999368,
+                "session_count": 3,
+                "is_tension_peak": true
+            }
+        ],
+        "low_variance": false,
+        "variance_note": null
+    }
+}

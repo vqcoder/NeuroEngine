@@ -9,14 +9,21 @@ from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from .config import get_settings
 from .db import get_db
-from .models import Study, Video
+from .models import Session as SessionModel, Study, TracePoint, Video
 from .readout_cache import invalidate_readout_cache
 from .schemas import (
     StudyCreate,
+    StudyDetail,
+    StudyListItem,
+    StudyListResponse,
     StudyRead,
+    StudyUpdate,
+    VideoCatalogItem,
     VideoCatalogResponse,
     VideoCreate,
     VideoCtaMarkersResponse,
@@ -33,6 +40,7 @@ from .services_catalog import (
     upsert_video_scene_graph,
 )
 from .services_summary import build_video_summary
+from .synchrony import compute_au04_synchrony, compute_narrative_tension_summary
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -46,6 +54,125 @@ def create_study(payload: StudyCreate, db: Session = Depends(get_db)) -> Study:
     db.commit()
     db.refresh(study)
     return study
+
+
+@router.get("/studies", response_model=StudyListResponse)
+def list_studies(
+    limit: int = Query(default=50, ge=1, le=500),
+    db: Session = Depends(get_db),
+) -> StudyListResponse:
+    studies = db.query(Study).order_by(Study.created_at.desc()).limit(limit).all()
+    items = []
+    for study in studies:
+        video_count = db.query(func.count(Video.id)).filter(Video.study_id == study.id).scalar() or 0
+        session_count = (
+            db.query(func.count(SessionModel.id))
+            .filter(SessionModel.study_id == study.id, SessionModel.status == "completed")
+            .scalar()
+            or 0
+        )
+        last_activity = (
+            db.query(func.max(SessionModel.created_at))
+            .filter(SessionModel.study_id == study.id)
+            .scalar()
+        )
+        items.append(
+            StudyListItem(
+                id=study.id,
+                name=study.name,
+                description=study.description,
+                created_at=study.created_at,
+                video_count=video_count,
+                session_count=session_count,
+                last_activity=last_activity,
+            )
+        )
+    return StudyListResponse(items=items)
+
+
+@router.get("/studies/{study_id}", response_model=StudyDetail)
+def get_study_detail(study_id: UUID, db: Session = Depends(get_db)) -> StudyDetail:
+    study = db.get(Study, study_id)
+    if study is None:
+        raise HTTPException(status_code=404, detail="Study not found")
+
+    catalog = list_video_catalog(db, limit=500)
+    study_videos = [v for v in catalog.items if v.study_id == study_id]
+
+    session_count = (
+        db.query(func.count(SessionModel.id))
+        .filter(SessionModel.study_id == study_id)
+        .scalar()
+        or 0
+    )
+    completed_session_count = (
+        db.query(func.count(SessionModel.id))
+        .filter(SessionModel.study_id == study_id, SessionModel.status == "completed")
+        .scalar()
+        or 0
+    )
+
+    return StudyDetail(
+        id=study.id,
+        name=study.name,
+        description=study.description,
+        created_at=study.created_at,
+        videos=study_videos,
+        session_count=session_count,
+        completed_session_count=completed_session_count,
+        participant_invite_path=f"/study/{study_id}",
+    )
+
+
+@router.patch("/studies/{study_id}", response_model=StudyListItem)
+def update_study(
+    study_id: UUID,
+    payload: StudyUpdate,
+    db: Session = Depends(get_db),
+) -> StudyListItem:
+    logger.info("update_study study_id=%s", study_id)
+    study = db.get(Study, study_id)
+    if study is None:
+        raise HTTPException(status_code=404, detail="Study not found")
+    if payload.name is not None:
+        study.name = payload.name
+    if payload.description is not None:
+        study.description = payload.description
+    db.commit()
+    db.refresh(study)
+
+    video_count = db.query(func.count(Video.id)).filter(Video.study_id == study.id).scalar() or 0
+    session_count = (
+        db.query(func.count(SessionModel.id))
+        .filter(SessionModel.study_id == study.id, SessionModel.status == "completed")
+        .scalar()
+        or 0
+    )
+    last_activity = (
+        db.query(func.max(SessionModel.created_at))
+        .filter(SessionModel.study_id == study.id)
+        .scalar()
+    )
+
+    return StudyListItem(
+        id=study.id,
+        name=study.name,
+        description=study.description,
+        created_at=study.created_at,
+        video_count=video_count,
+        session_count=session_count,
+        last_activity=last_activity,
+    )
+
+
+@router.delete("/studies/{study_id}", status_code=204)
+def delete_study(study_id: UUID, db: Session = Depends(get_db)) -> None:
+    logger.info("delete_study study_id=%s", study_id)
+    study = db.get(Study, study_id)
+    if study is None:
+        raise HTTPException(status_code=404, detail="Study not found")
+    db.delete(study)
+    db.commit()
 
 
 @router.post("/videos", response_model=VideoRead, status_code=201)
@@ -221,3 +348,53 @@ def update_cta_markers(
 @router.get("/videos/{video_id}/summary", response_model=VideoSummaryResponse)
 def get_video_summary(video_id: UUID, db: Session = Depends(get_db)) -> VideoSummaryResponse:
     return build_video_summary(db, video_id)
+
+
+@router.get("/videos/{video_id}/synchrony")
+def get_video_synchrony(
+    video_id: UUID,
+    window_ms: int = Query(default=1000, ge=100, le=10_000),
+    min_sessions: int = Query(default=2, ge=1, le=100),
+    db: Session = Depends(get_db),
+) -> dict:
+    settings = get_settings()
+    if not settings.synchrony_analysis_enabled:
+        return {"available": False, "reason": "synchrony_analysis_disabled"}
+
+    sessions = (
+        db.query(SessionModel)
+        .filter(SessionModel.video_id == video_id, SessionModel.status == "completed")
+        .all()
+    )
+    session_count = len(sessions)
+
+    if session_count < min_sessions:
+        return {
+            "available": False,
+            "reason": "insufficient_sessions",
+            "session_count": session_count,
+        }
+
+    session_traces = []
+    for sess in sessions:
+        traces = (
+            db.query(TracePoint.video_time_ms, TracePoint.au)
+            .filter(TracePoint.session_id == sess.id)
+            .order_by(TracePoint.video_time_ms)
+            .all()
+        )
+        session_traces.append([
+            {"video_time_ms": tp.video_time_ms, "au": tp.au}
+            for tp in traces
+        ])
+
+    windows = compute_au04_synchrony(session_traces, window_ms=window_ms)
+    summary = compute_narrative_tension_summary(windows)
+
+    return {
+        "available": True,
+        "session_count": session_count,
+        "window_ms": window_ms,
+        "windows": windows,
+        "summary": summary,
+    }

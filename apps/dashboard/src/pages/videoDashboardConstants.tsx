@@ -37,7 +37,8 @@ export const MARKER_DISPLAY_LABEL: Record<AnnotationOverlayMarker['marker_type']
 export const TELEMETRY_KIND_LABEL: Record<TelemetryOverlayMarker['kind'], string> = {
   pause: 'Pause',
   seek: 'Seek',
-  abandonment: 'Abandonment'
+  abandonment: 'Abandonment',
+  audio_reaction: 'Audio Reaction'
 };
 
 // ── Reliability ─────────────────────────────────────────────────────

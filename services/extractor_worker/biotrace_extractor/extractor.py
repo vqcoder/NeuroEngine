@@ -12,6 +12,7 @@ from .blink import BlinkDetector, compute_eye_aspect_ratio
 from .facemesh import FaceMeshProcessor
 from .geometry import clamp01
 from .head_pose import estimate_head_pose
+from .pupillometry import PupilBaselineTracker, estimate_pupil_dilation_proxy, smooth_pupil_signal
 from .io_utils import list_frame_paths, load_events, resolve_frame_timestamps
 from .quality import (
     blur_quality_score,
@@ -66,6 +67,7 @@ class SessionExtractor:
             threshold=self.config.blink_threshold,
             min_closed_frames=self.config.blink_min_closed_frames,
         )
+        pupil_tracker = PupilBaselineTracker()
         rolling_tracker = RollingSignalTracker(
             window_ms=self.config.rolling_window_ms,
             baseline_window_ms=self.config.baseline_window_ms,
@@ -156,6 +158,9 @@ class SessionExtractor:
                         "quality_confidence": quality_confidence,
                         "tracking_confidence": tracking_confidence,
                         "quality_flags": quality_flags,
+                        "pupil_dilation_proxy": None,
+                        "pupil_dilation_proxy_raw": None,
+                        "pupil_baseline_normalised": None,
                         "au": au,
                         "au_norm": zero_aus(),
                         "head_pose": {"yaw": None, "pitch": None, "roll": None},
@@ -200,6 +205,9 @@ class SessionExtractor:
                     eye_openness=eye_openness,
                     face_presence_confidence=face_presence_confidence,
                 )
+
+                pupil_raw = estimate_pupil_dilation_proxy(landmarks)
+                pupil_baseline_normalised = pupil_tracker.update(int(t_ms), pupil_raw)
 
                 rolling = rolling_tracker.update(
                     t_ms=int(t_ms),
@@ -270,6 +278,9 @@ class SessionExtractor:
                     "quality_confidence": quality_confidence,
                     "tracking_confidence": tracking_confidence,
                     "quality_flags": quality_flags,
+                    "pupil_dilation_proxy": pupil_raw,
+                    "pupil_dilation_proxy_raw": pupil_raw,
+                    "pupil_baseline_normalised": pupil_baseline_normalised,
                     "au": au,
                     "au_norm": zero_aus(),
                     "head_pose": head_pose,
@@ -282,6 +293,12 @@ class SessionExtractor:
             baseline_window_ms=self.config.baseline_window_ms,
         )
         apply_baseline_correction(mutable_rows, baseline)
+
+        # Smooth pupil dilation proxy signal.
+        raw_pupil_values = [r.get("pupil_dilation_proxy_raw") for r in mutable_rows]
+        smoothed = smooth_pupil_signal(raw_pupil_values)
+        for r, s in zip(mutable_rows, smoothed):
+            r["pupil_dilation_proxy"] = s
 
         return mutable_rows  # type: ignore[return-value]
 

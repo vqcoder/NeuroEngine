@@ -48,7 +48,11 @@ export const timelineEventSchema = z.object({
     'session_incomplete',
     'finish_clicked',
     'upload_success',
-    'upload_failed'
+    'upload_failed',
+    'mic_granted',
+    'mic_denied',
+    'mic_bypassed',
+    'audio_reaction'
   ]),
   sessionId: z.string().uuid(),
   videoId: z.string().min(1),
@@ -232,11 +236,15 @@ export const uploadPayloadSchema = z
     framePointers: z.array(framePointerSchema)
   })
   .superRefine((payload, ctx) => {
-    if (payload.frames.length === 0 && payload.framePointers.length === 0) {
+    if (
+      payload.frames.length === 0 &&
+      payload.framePointers.length === 0 &&
+      payload.traceRows.length === 0
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['frames'],
-        message: 'Payload must include frames or frame pointers.'
+        message: 'Payload must include frames, frame pointers, or trace rows.'
       });
     }
   });

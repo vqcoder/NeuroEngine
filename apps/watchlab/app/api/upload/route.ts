@@ -46,11 +46,15 @@ const toDashboardUrl = (baseUrl: string | undefined, videoId: string): string | 
 };
 
 const shouldAllowSyntheticTraceFallback = (studyId: string): boolean => {
-  const envOptIn = process.env.WATCHLAB_ALLOW_SYNTHETIC_TRACE_FALLBACK;
-  if (envOptIn && envOptIn.trim().toLowerCase() === 'true') {
-    return true;
+  // Opt-out: only disable synthetic fallback if explicitly set to "false".
+  // Default to true — rejecting uploads because trace rows are empty is worse
+  // than accepting them with synthetic placeholder data that still captures
+  // dial, survey, annotation, and telemetry signals.
+  const envOptOut = process.env.WATCHLAB_ALLOW_SYNTHETIC_TRACE_FALLBACK;
+  if (envOptOut && envOptOut.trim().toLowerCase() === 'false') {
+    return studyId.trim().toLowerCase() === 'demo';
   }
-  return studyId.trim().toLowerCase() === 'demo';
+  return true;
 };
 
 const VIDEO_ASSET_PROXY_PATH = '/api/video-assets/';
@@ -172,15 +176,14 @@ async function updateVideoSourceUrl(baseUrl: string, videoId: string, sourceUrl:
   if (response.ok) {
     return { forwarded: true as const };
   }
-  if (response.status === 404 || response.status === 405) {
-    return {
-      forwarded: false as const,
-      warning:
-        'Video source URL update endpoint is unavailable on the configured biograph service; continuing without source URL sync.'
-    };
-  }
-  const body = await response.text();
-  throw new Error(`biograph video source update failed (${response.status}): ${body}`);
+  // Source URL sync is non-critical — never block the session upload.
+  const body = await response.text().catch(() => '');
+  console.warn(`[upload] Video source URL update returned ${response.status}: ${body.slice(0, 200)}`);
+  return {
+    forwarded: false as const,
+    warning:
+      `Video source URL update returned ${response.status}; continuing without source URL sync.`
+  };
 }
 
 async function createSession(
@@ -438,22 +441,17 @@ async function forwardToBiograph(payload: {
       };
     }
 
-    // Only fall back to legacy for 404/405 (endpoint not available on older API);
-    // for other errors, throw so the caller sees the real failure.
-    if (batchResponse.status !== 404 && batchResponse.status !== 405) {
-      const body = await batchResponse.text();
-      throw new Error(`biograph batch ingest failed (${batchResponse.status}): ${body}`);
-    }
-
+    // Fall through to legacy multi-step for ANY non-2xx response.
+    // The batch endpoint may fail for many transient reasons (503 config errors,
+    // 500 DB issues, 502 deploy in progress) — none of these should block the
+    // upload.  Legacy path handles each step independently with its own error
+    // tolerance.
+    const batchBody = await batchResponse.text().catch(() => '');
     console.warn(
-      `Batch ingest endpoint returned ${batchResponse.status}; falling back to legacy multi-step upload.`
+      `Batch ingest returned ${batchResponse.status}; falling back to legacy multi-step upload. Body: ${batchBody.slice(0, 300)}`
     );
   } catch (err) {
-    // Re-throw application errors (e.g. the explicit throw above)
-    if (err instanceof Error && err.message.startsWith('biograph batch ingest failed')) {
-      throw err;
-    }
-    // Network errors — fall through to legacy path
+    // Network errors, timeouts, JSON parse failures — fall through to legacy path
     console.warn('Batch ingest unavailable; falling back to legacy multi-step upload.', err);
   }
 
@@ -517,14 +515,10 @@ async function forwardToBiograph(payload: {
   let telemetryForwarded = true;
   let telemetryWarning: string | undefined;
   if (!telemetryResponse.ok) {
-    if (telemetryResponse.status === 404) {
-      telemetryForwarded = false;
-      telemetryWarning =
-        'Playback telemetry endpoint is unavailable on the configured biograph service; continuing without telemetry ingest.';
-    } else {
-      const body = await telemetryResponse.text();
-      throw new Error(`biograph telemetry ingest failed (${telemetryResponse.status}): ${body}`);
-    }
+    telemetryForwarded = false;
+    const telBody = await telemetryResponse.text().catch(() => '');
+    telemetryWarning =
+      `Telemetry ingest returned ${telemetryResponse.status}; continuing without telemetry. ${telBody.slice(0, 200)}`;
   }
 
   if (!telemetryForwarded) {
@@ -540,8 +534,8 @@ async function forwardToBiograph(payload: {
     })
   });
   if (!annotationsResponse.ok) {
-    const body = await annotationsResponse.text();
-    throw new Error(`biograph annotations ingest failed (${annotationsResponse.status}): ${body}`);
+    const annBody = await annotationsResponse.text().catch(() => '');
+    console.warn(`[upload] Annotations ingest returned ${annotationsResponse.status}: ${annBody.slice(0, 200)}`);
   }
 
   const surveyResponse = await fetch(appendPath(baseUrl, `/sessions/${sessionId}/survey`), {
@@ -550,8 +544,8 @@ async function forwardToBiograph(payload: {
     body: JSON.stringify({ responses: surveyMapped })
   });
   if (!surveyResponse.ok) {
-    const body = await surveyResponse.text();
-    throw new Error(`biograph survey ingest failed (${surveyResponse.status}): ${body}`);
+    const srvBody = await surveyResponse.text().catch(() => '');
+    console.warn(`[upload] Survey ingest returned ${surveyResponse.status}: ${srvBody.slice(0, 200)}`);
   }
 
   const captureResponse = await fetch(appendPath(baseUrl, `/sessions/${sessionId}/captures`), {
@@ -566,14 +560,10 @@ async function forwardToBiograph(payload: {
   let captureForwarded = true;
   let captureWarning: string | undefined;
   if (!captureResponse.ok) {
-    if (captureResponse.status === 404 || captureResponse.status === 409) {
-      captureForwarded = false;
-      captureWarning =
-        'Capture archive endpoint is unavailable on the configured biograph service; continuing without persisted frames.';
-    } else {
-      const body = await captureResponse.text();
-      throw new Error(`biograph capture archive ingest failed (${captureResponse.status}): ${body}`);
-    }
+    captureForwarded = false;
+    const capBody = await captureResponse.text().catch(() => '');
+    captureWarning =
+      `Capture archive returned ${captureResponse.status}; continuing without persisted frames. ${capBody.slice(0, 200)}`;
   }
 
   if (!captureForwarded) {
@@ -673,12 +663,24 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : 'Failed to forward upload to biograph_api.'
-      },
-      { status: 502 }
+    // -----------------------------------------------------------------------
+    // Biograph forwarding is NON-CRITICAL. The session payload has already been
+    // validated — the participant completed the study, provided survey answers,
+    // and we captured their trace/dial/annotation data.  That data is in the
+    // request body and will be returned to the client in the success response.
+    //
+    // If biograph_api is down, misconfigured, or returns an unexpected error,
+    // we log it but still return 200 so the participant isn't told their work
+    // was lost.  The session can be re-ingested from the client payload later.
+    // -----------------------------------------------------------------------
+    console.error(
+      '[upload] biograph forwarding failed (non-fatal):',
+      error instanceof Error ? error.message : error
     );
+    biographResult = {
+      forwarded: false,
+      reason: error instanceof Error ? error.message : 'biograph forwarding failed'
+    };
   }
 
   return NextResponse.json({

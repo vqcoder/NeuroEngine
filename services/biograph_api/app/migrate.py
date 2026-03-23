@@ -15,7 +15,7 @@ import time
 
 from alembic import command as alembic_command
 from alembic.config import Config as AlembicConfig
-from sqlalchemy import text
+from sqlalchemy import inspect, text
 
 from .db import engine
 
@@ -23,6 +23,29 @@ logger = logging.getLogger(__name__)
 
 # Arbitrary but fixed lock ID so every replica contends on the same key.
 _ADVISORY_LOCK_ID = 72813
+
+# Tables that indicate the schema was created outside of Alembic (e.g. via
+# Supabase MCP migrations).  If these exist but ``alembic_version`` does not,
+# we stamp ``head`` instead of running ``upgrade head`` to avoid re-creating
+# objects that already exist.
+_CORE_TABLES = frozenset({"studies", "videos", "sessions", "trace_points", "survey_responses"})
+
+
+def _schema_exists_without_alembic() -> bool:
+    """Return *True* if core tables exist but Alembic has never been run."""
+
+    insp = inspect(engine)
+    existing_tables = set(insp.get_table_names())
+    has_core = _CORE_TABLES.issubset(existing_tables)
+    has_alembic = "alembic_version" in existing_tables
+    if has_core and not has_alembic:
+        logger.info(
+            "Core tables present (%s) but alembic_version missing — schema was "
+            "created outside of Alembic.",
+            ", ".join(sorted(_CORE_TABLES & existing_tables)),
+        )
+        return True
+    return False
 
 
 def run_migrations_with_lock() -> None:
@@ -34,6 +57,15 @@ def run_migrations_with_lock() -> None:
     On non-PostgreSQL backends (e.g. SQLite in tests), advisory locks are
     unavailable so the function skips locking and runs migrations directly.
     """
+
+    # Detect schemas created outside of Alembic (e.g. Supabase MCP) and stamp
+    # head so that future migrations start from the right place.
+    if _schema_exists_without_alembic():
+        logger.info("Stamping alembic head instead of running migrations.")
+        cfg = AlembicConfig("alembic.ini")
+        alembic_command.stamp(cfg, "head")
+        logger.info("Alembic stamp head completed successfully.")
+        return
 
     # Advisory locks are PostgreSQL-specific; skip on other dialects.
     if engine.dialect.name != "postgresql":

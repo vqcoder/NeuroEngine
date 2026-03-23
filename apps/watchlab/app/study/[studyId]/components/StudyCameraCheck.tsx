@@ -1,7 +1,9 @@
 'use client';
 
+import { useRef } from 'react';
 import type { RefObject } from 'react';
 import type { QualityState, WebcamStatus } from '@/lib/studyTypes';
+import type { MicStatus } from '../hooks/useAudioReaction';
 
 export interface StudyCameraCheckProps {
   webcamVideoRef: RefObject<HTMLVideoElement | null>;
@@ -19,6 +21,12 @@ export interface StudyCameraCheckProps {
   playAudioCheckTone: () => void;
   setAudioConfirmed: (value: boolean) => void;
   onStartStudyVideo: () => void;
+  micEnabled: boolean;
+  micStatus: MicStatus;
+  micEnergyLevel: number;
+  onMicAllow: () => void;
+  onMicSkip: () => void;
+  onMicConfirmed: () => void;
 }
 
 export default function StudyCameraCheck({
@@ -36,7 +44,13 @@ export default function StudyCameraCheck({
   onContinueWithoutWebcam,
   playAudioCheckTone,
   setAudioConfirmed,
-  onStartStudyVideo
+  onStartStudyVideo,
+  micEnabled,
+  micStatus,
+  micEnergyLevel,
+  onMicAllow,
+  onMicSkip,
+  onMicConfirmed
 }: StudyCameraCheckProps) {
   const lightCheck = quality.brightnessOk
     ? 'check-pass'
@@ -50,11 +64,48 @@ export default function StudyCameraCheck({
       : 'check-idle';
   const fpsCheck = quality.fpsOk ? 'check-pass' : webcamStatus === 'granted' ? 'check-warn' : 'check-idle';
   const audioCheck = audioConfirmed ? 'check-pass' : 'check-idle';
+
+  const micConfirmedRef = useRef(false);
+  const micGrantedAtRef = useRef<number | null>(null);
+  const micHighEnergySamplesRef = useRef(0);
+
+  if (micStatus === 'granted' && micGrantedAtRef.current === null) {
+    micGrantedAtRef.current = performance.now();
+  }
+  if (micStatus !== 'granted') {
+    micGrantedAtRef.current = null;
+    micHighEnergySamplesRef.current = 0;
+  }
+
+  if (
+    !micConfirmedRef.current &&
+    micStatus === 'granted' &&
+    micGrantedAtRef.current !== null
+  ) {
+    const elapsed = performance.now() - micGrantedAtRef.current;
+    if (micEnergyLevel > 0.08) {
+      micHighEnergySamplesRef.current += 1;
+    } else {
+      micHighEnergySamplesRef.current = 0;
+    }
+    if (elapsed >= 300 && micHighEnergySamplesRef.current >= 2) {
+      micConfirmedRef.current = true;
+      onMicConfirmed();
+    }
+  }
+  const micConfirmed = micConfirmedRef.current;
+
   const badgeClass = quality.pass ? 'badge-pass' : webcamStatus === 'granted' ? 'badge-checking' : 'badge-waiting';
   const badgeLabel = quality.pass ? '\u25cf QUALITY PASS' : webcamStatus === 'granted' ? '\u25cf Checking...' : '\u25cf Waiting for camera';
 
   return (
     <main className="camera-stage-full">
+      <style>{`
+        @keyframes mic-pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.6; }
+        }
+      `}</style>
       <canvas ref={qualityCanvasRef} style={{ display: 'none' }} />
       <canvas ref={captureCanvasRef} style={{ display: 'none' }} />
       <div className="camera-layout">
@@ -157,6 +208,83 @@ export default function StudyCameraCheck({
                 ) : null}
               </div>
             </div>
+
+            {micEnabled && (
+              <div className={`camera-check-item ${
+                micStatus === 'granted' ? 'check-pass'
+                  : micStatus === 'denied' || micStatus === 'bypassed' ? 'check-idle'
+                  : 'check-warn'
+              }`}>
+                <div className="camera-check-dot" />
+                <div className="camera-check-content">
+                  <span className="camera-check-label">Microphone</span>
+                  {micStatus === 'idle' && (
+                    <div className="camera-check-audio">
+                      <button onClick={onMicAllow} className="camera-audio-btn">
+                        Allow
+                      </button>
+                      <button
+                        onClick={onMicSkip}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#94a3b8',
+                          cursor: 'pointer',
+                          textDecoration: 'underline',
+                          fontSize: '0.8rem',
+                          marginLeft: 8,
+                        }}
+                      >
+                        Skip
+                      </button>
+                      <span className="camera-check-status" style={{ display: 'block', marginTop: 2 }}>
+                        Optional &mdash; allow mic to capture reactions
+                      </span>
+                    </div>
+                  )}
+                  {micStatus === 'requesting' && (
+                    <span className="camera-check-status">Requesting access...</span>
+                  )}
+                  {micStatus === 'granted' && !micConfirmed && (
+                    <div style={{ marginTop: 4 }}>
+                      <div
+                        style={{
+                          width: '100%',
+                          height: 10,
+                          borderRadius: 5,
+                          background: '#334155',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: `${Math.min(Math.max(micEnergyLevel * 100, 4), 100)}%`,
+                            height: '100%',
+                            borderRadius: 5,
+                            background: 'linear-gradient(90deg, #22c55e, #4ade80)',
+                            transition: 'width 80ms ease-out',
+                            animation: 'mic-pulse 1.5s ease-in-out infinite',
+                          }}
+                        />
+                      </div>
+                      <span className="camera-check-status" style={{ display: 'block', marginTop: 2 }}>
+                        Say something to test
+                      </span>
+                    </div>
+                  )}
+                  {micStatus === 'granted' && micConfirmed && (
+                    <span className="camera-check-status" style={{ color: '#22c55e' }}>
+                      &#10003; Microphone ready
+                    </span>
+                  )}
+                  {(micStatus === 'denied' || micStatus === 'bypassed') && (
+                    <span className="camera-check-status">
+                      Skipped &mdash; reactions won&apos;t be captured
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="camera-tips">

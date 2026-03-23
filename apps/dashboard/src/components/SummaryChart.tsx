@@ -19,7 +19,7 @@ type MarkerType =
   | 'stop_watching_moment'
   | 'cta_landed_moment';
 
-type TelemetryKind = 'pause' | 'seek' | 'abandonment';
+type TelemetryKind = 'pause' | 'seek' | 'abandonment' | 'audio_reaction';
 
 type LayerVisibility = {
   attentionScore: boolean;
@@ -297,13 +297,15 @@ const markerLabel: Record<MarkerType, string> = {
 const telemetryPalette: Record<TelemetryKind, string> = {
   pause: '#f59e0b',
   seek: '#0ea5e9',
-  abandonment: '#dc2626'
+  abandonment: '#dc2626',
+  audio_reaction: '#f59e0b'
 };
 
 const telemetryLabel: Record<TelemetryKind, string> = {
   pause: 'Pause',
   seek: 'Seek',
-  abandonment: 'Abandon'
+  abandonment: 'Abandon',
+  audio_reaction: '\uD83C\uDFA4 Reaction'
 };
 
 export default function SummaryChart({

@@ -10,6 +10,8 @@ export type StudyConfig = {
   originalVideoUrl?: string | null;
   dialEnabled: boolean;
   requireWebcam: boolean;
+  micEnabled: boolean;
+  clientExtractionEnabled: boolean;
 };
 
 export type FrontendDiagnosticSeverity = 'info' | 'warning' | 'error';
@@ -147,5 +149,7 @@ export const emptyConfig: StudyConfig = {
   videoUrl: '',
   originalVideoUrl: null,
   dialEnabled: false,
-  requireWebcam: false
+  requireWebcam: false,
+  micEnabled: false,
+  clientExtractionEnabled: false
 };

@@ -210,3 +210,37 @@ class TimelineFeatureWindowResponse(BaseModel):
     segments: List[TimelineSegmentRead] = Field(default_factory=list)
     feature_tracks: List[FeatureTrackRead] = Field(default_factory=list)
     metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class StudyListItem(BaseModel):
+    id: UUID
+    name: str
+    description: Optional[str] = None
+    created_at: datetime
+    video_count: int = Field(ge=0)
+    session_count: int = Field(ge=0)
+    last_activity: Optional[datetime] = None
+
+    model_config = {"from_attributes": True}
+
+
+class StudyDetail(BaseModel):
+    id: UUID
+    name: str
+    description: Optional[str] = None
+    created_at: datetime
+    videos: List[VideoCatalogItem] = Field(default_factory=list)
+    session_count: int = Field(ge=0)
+    completed_session_count: int = Field(ge=0)
+    participant_invite_path: str
+
+    model_config = {"from_attributes": True}
+
+
+class StudyListResponse(BaseModel):
+    items: List[StudyListItem] = Field(default_factory=list)
+
+
+class StudyUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=255)
+    description: Optional[str] = None

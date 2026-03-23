@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -77,10 +77,17 @@ class Settings(BaseSettings):
     webcam_capture_archive_encryption_key_id: str = ""
     webcam_capture_archive_observability_window_hours: int = 24
     strict_canonical_trace_fields: bool = False
+    synchrony_analysis_enabled: bool = Field(
+        default=True, validation_alias="ENABLE_SYNCHRONY_ANALYSIS"
+    )
 
     # Security settings
     api_token_required: bool = True
     rate_limit_rpm: int = 120
+    # Supabase Auth — set SUPABASE_URL to enable JWT verification via JWKS.
+    # SUPABASE_JWT_SECRET is no longer needed — ES256 JWTs are verified
+    # using the public key fetched from {supabase_url}/auth/v1/.well-known/jwks.json.
+    supabase_url: str = ""
 
     @property
     def normalized_database_url(self) -> str:

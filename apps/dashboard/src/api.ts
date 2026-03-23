@@ -9,12 +9,15 @@ import type {
   PredictJobStatus,
   PredictResponse,
   ReadoutExportPackage,
+  StudyDetail,
+  StudyListItem,
   VideoCatalogItem,
   VideoCatalogResponse,
   VideoReadout,
   VideoSummary
 } from './types';
 import { guardIsObject, guardItemsWrapper, guardReadoutShape } from './api-guards';
+import { getAccessToken } from './lib/supabase';
 
 const DEFAULT_LOCAL_API_BASE_URL = 'http://127.0.0.1:8000';
 const DEFAULT_PROD_API_BASE_URLS: string[] = (
@@ -33,10 +36,27 @@ const API_BASE_STORAGE_KEY = 'neurotrace_api_base_url';
  */
 const _LEGACY_API_TOKEN = (import.meta.env.VITE_API_TOKEN as string | undefined)?.trim() ?? '';
 
+let _cachedSupabaseToken: string | null = null;
+let _tokenFetchPromise: Promise<string | null> | null = null;
+
+async function resolveAuthToken(): Promise<string | null> {
+  // Prefer Supabase JWT when available
+  if (!_tokenFetchPromise) {
+    _tokenFetchPromise = getAccessToken().then((token) => {
+      _cachedSupabaseToken = token;
+      _tokenFetchPromise = null;
+      return token;
+    });
+  }
+  return _tokenFetchPromise;
+}
+
 function withAuth(init?: RequestInit): RequestInit {
-  if (!_LEGACY_API_TOKEN) return init ?? {};
+  // Use cached Supabase token if available, else fall back to legacy
+  const token = _cachedSupabaseToken || _LEGACY_API_TOKEN;
+  if (!token) return init ?? {};
   const existing = (init?.headers ?? {}) as Record<string, string>;
-  return { ...init, headers: { Authorization: `Bearer ${_LEGACY_API_TOKEN}`, ...existing } };
+  return { ...init, headers: { Authorization: `Bearer ${token}`, ...existing } };
 }
 
 /**
@@ -129,12 +149,14 @@ function deriveRailwayApiBaseFromDashboardHost(hostname: string): string[] {
   return [...candidates];
 }
 
-function resolveApiBaseCandidates(): string[] {
+function resolveApiBaseCandidates(supabaseToken?: string | null): string[] {
   const candidates = new Set<string>();
+  const hasJwt = Boolean(supabaseToken);
 
-  // In production, prefer the server-side proxy which injects the auth token.
-  // The proxy is served at the same origin under /api-proxy/.
-  if (typeof window !== 'undefined' && !isLocalHostname(window.location.hostname)) {
+  // When the user is authenticated via Supabase JWT, call biograph-api directly
+  // with the JWT instead of routing through /api-proxy/ (which injects the
+  // static API_TOKEN and ignores the JWT).
+  if (!hasJwt && typeof window !== 'undefined' && !isLocalHostname(window.location.hostname)) {
     candidates.add(`${normalizeBaseUrl(window.location.origin)}${API_PROXY_PREFIX}`);
   }
 
@@ -222,8 +244,9 @@ function isTransientStatus(status: number): boolean {
 }
 
 async function fetchApi(pathWithQuery: string, init?: RequestInit): Promise<Response> {
+  await resolveAuthToken();
   init = withAuth(init);
-  const candidates = resolveApiBaseCandidates();
+  const candidates = resolveApiBaseCandidates(_cachedSupabaseToken);
   if (rememberedApiBaseUrl) {
     const index = candidates.indexOf(rememberedApiBaseUrl);
     if (index > 0) {
@@ -552,4 +575,48 @@ export async function fetchAnalystSessions(
 ): Promise<AnalystSessionsResponse> {
   const response = await fetchApi(`/analyst/videos/${videoId}/sessions`);
   return (await response.json()) as AnalystSessionsResponse;
+}
+
+// ---------------------------------------------------------------------------
+// Study Management
+// ---------------------------------------------------------------------------
+
+export async function fetchStudies(limit = 50): Promise<StudyListItem[]> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  const response = await fetchApi(`/studies?${params.toString()}`);
+  const body = await response.json();
+  return guardItemsWrapper(body, 'GET /studies') as StudyListItem[];
+}
+
+export async function fetchStudyDetail(studyId: string): Promise<StudyDetail> {
+  const response = await fetchApi(`/studies/${studyId}`);
+  const body = await response.json();
+  guardIsObject(body, `GET /studies/${studyId}`);
+  return body as StudyDetail;
+}
+
+export async function createStudy(name: string, description?: string): Promise<StudyListItem> {
+  const response = await fetchApi('/studies', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, description }),
+  });
+  const body = await response.json();
+  guardIsObject(body, 'POST /studies');
+  return body as StudyListItem;
+}
+
+export async function updateStudy(studyId: string, updates: { name?: string; description?: string }): Promise<StudyListItem> {
+  const response = await fetchApi(`/studies/${studyId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  });
+  const body = await response.json();
+  guardIsObject(body, `PATCH /studies/${studyId}`);
+  return body as StudyListItem;
+}
+
+export async function deleteStudy(studyId: string): Promise<void> {
+  await fetchApi(`/studies/${studyId}`, { method: 'DELETE' });
 }

@@ -1,0 +1,8 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build --workspace=apps/watchlab",
+  "installCommand": "npm install",
+  "outputDirectory": "apps/watchlab/.next",
+  "framework": "nextjs",
+  "regions": ["iad1"]
+}
