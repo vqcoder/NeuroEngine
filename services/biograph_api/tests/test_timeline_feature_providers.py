@@ -6,7 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from app.config import get_settings
-from app.timeline_feature_store import _extract_text_overlay_segments, _extract_transcript_segments
+from app.timeline_feature_store_extractors import _extract_text_overlay_segments, _extract_transcript_segments
 
 
 def test_extract_transcript_segments_uses_whisper_provider_when_configured(monkeypatch):
