@@ -149,12 +149,14 @@ function deriveRailwayApiBaseFromDashboardHost(hostname: string): string[] {
   return [...candidates];
 }
 
-function resolveApiBaseCandidates(): string[] {
+function resolveApiBaseCandidates(supabaseToken?: string | null): string[] {
   const candidates = new Set<string>();
+  const hasJwt = Boolean(supabaseToken);
 
-  // In production, prefer the server-side proxy which injects the auth token.
-  // The proxy is served at the same origin under /api-proxy/.
-  if (typeof window !== 'undefined' && !isLocalHostname(window.location.hostname)) {
+  // When the user is authenticated via Supabase JWT, call biograph-api directly
+  // with the JWT instead of routing through /api-proxy/ (which injects the
+  // static API_TOKEN and ignores the JWT).
+  if (!hasJwt && typeof window !== 'undefined' && !isLocalHostname(window.location.hostname)) {
     candidates.add(`${normalizeBaseUrl(window.location.origin)}${API_PROXY_PREFIX}`);
   }
 
@@ -244,7 +246,7 @@ function isTransientStatus(status: number): boolean {
 async function fetchApi(pathWithQuery: string, init?: RequestInit): Promise<Response> {
   await resolveAuthToken();
   init = withAuth(init);
-  const candidates = resolveApiBaseCandidates();
+  const candidates = resolveApiBaseCandidates(_cachedSupabaseToken);
   if (rememberedApiBaseUrl) {
     const index = candidates.indexOf(rememberedApiBaseUrl);
     if (index > 0) {
