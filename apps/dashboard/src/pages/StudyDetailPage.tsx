@@ -71,10 +71,10 @@ export default function StudyDetailPage() {
     }
   };
 
-  const inviteUrl =
-    study && typeof window !== 'undefined'
-      ? `${window.location.origin}${study.participant_invite_path}`
-      : '';
+  const watchlabBase =
+    (import.meta.env.VITE_WATCHLAB_URL as string | undefined)?.replace(/\/+$/, '') ||
+    'https://lab.alpha-engine.ai';
+  const inviteUrl = study ? `${watchlabBase}${study.participant_invite_path}` : '';
 
   if (loading) {
     return (

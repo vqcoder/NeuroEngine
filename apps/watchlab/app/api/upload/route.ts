@@ -120,48 +120,86 @@ const normalizeSourceUrlForBiograph = (rawValue: string | undefined): string | u
   }
 };
 
+/**
+ * Look up an existing study+video in biograph, or create them if they don't
+ * exist.  When `studyId` is a UUID from the Studies UI, the study already
+ * exists in the DB and we simply reuse it.  For auto-provisioned studies
+ * (e.g. the demo study) we create with an explicit ID so subsequent
+ * submissions for the same URL land in the same record.
+ */
 async function createStudyAndVideo(
   baseUrl: string,
   studyKey: string,
   videoKey: string,
   sourceUrl?: string
 ) {
-  const studyResponse = await fetch(appendPath(baseUrl, '/studies'), {
-    method: 'POST',
-    headers: biographHeaders({ 'Content-Type': 'application/json' }),
-    body: JSON.stringify({
-      name: `NeuroTrace ${studyKey}`,
-      description: 'Auto-provisioned by Watchlab upload route.'
-    })
+  // --- Try to find an existing study ---
+  let studyId: string | null = null;
+  let videoId: string | null = null;
+  let createdStudy = false;
+  let createdVideo = false;
+
+  const lookupResponse = await fetch(appendPath(baseUrl, `/studies/${studyKey}`), {
+    method: 'GET',
+    headers: biographHeaders()
   });
-  if (!studyResponse.ok) {
-    const body = await studyResponse.text();
-    throw new Error(`biograph study create failed (${studyResponse.status}): ${body}`);
+
+  if (lookupResponse.ok) {
+    const detail = (await lookupResponse.json()) as {
+      id: string;
+      videos?: Array<{ video_id: string }>;
+    };
+    studyId = detail.id;
+    if (detail.videos && detail.videos.length > 0) {
+      videoId = detail.videos[0].video_id;
+    }
+  } else {
+    // Study not found — create with explicit ID so future lookups succeed
+    const studyResponse = await fetch(appendPath(baseUrl, '/studies'), {
+      method: 'POST',
+      headers: biographHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({
+        id: studyKey,
+        name: `NeuroTrace ${studyKey}`,
+        description: 'Auto-provisioned by Watchlab upload route.'
+      })
+    });
+    if (!studyResponse.ok) {
+      const body = await studyResponse.text();
+      throw new Error(`biograph study create failed (${studyResponse.status}): ${body}`);
+    }
+    const studyBody = (await studyResponse.json()) as { id: string };
+    studyId = studyBody.id;
+    createdStudy = true;
   }
 
-  const studyBody = (await studyResponse.json()) as { id: string };
-
-  const videoResponse = await fetch(appendPath(baseUrl, '/videos'), {
-    method: 'POST',
-    headers: biographHeaders({ 'Content-Type': 'application/json' }),
-    body: JSON.stringify({
-      study_id: studyBody.id,
-      title: `Stimulus ${videoKey}`,
-      source_url: sourceUrl ?? process.env.DEFAULT_STUDY_VIDEO_URL ?? '/sample.mp4',
-      duration_ms: 60_000
-    })
-  });
-  if (!videoResponse.ok) {
-    const body = await videoResponse.text();
-    throw new Error(`biograph video create failed (${videoResponse.status}): ${body}`);
+  // --- Ensure a video exists for this study ---
+  if (!videoId) {
+    const videoResponse = await fetch(appendPath(baseUrl, '/videos'), {
+      method: 'POST',
+      headers: biographHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({
+        study_id: studyId,
+        title: `Stimulus ${videoKey}`,
+        source_url: sourceUrl ?? process.env.DEFAULT_STUDY_VIDEO_URL ?? '/sample.mp4',
+        duration_ms: 60_000
+      })
+    });
+    if (!videoResponse.ok) {
+      const body = await videoResponse.text();
+      throw new Error(`biograph video create failed (${videoResponse.status}): ${body}`);
+    }
+    const videoBody = (await videoResponse.json()) as { id: string };
+    videoId = videoBody.id;
+    createdVideo = true;
   }
-
-  const videoBody = (await videoResponse.json()) as { id: string };
 
   return {
-    studyId: studyBody.id,
-    videoId: videoBody.id,
-    created: true
+    studyId: studyId!,
+    videoId: videoId!,
+    created: createdStudy || createdVideo,
+    createdStudy,
+    createdVideo
   };
 }
 
@@ -276,8 +314,12 @@ async function forwardToBiograph(payload: {
   traceRows: TraceRow[];
 }) {
   const baseUrl = normalizeBiographBaseUrl(process.env.BIOGRAPH_API_BASE_URL);
-  const studyId = process.env.BIOGRAPH_STUDY_ID;
-  const videoId = process.env.BIOGRAPH_VIDEO_ID;
+  // BIOGRAPH_STUDY_ID and BIOGRAPH_VIDEO_ID are now only used for the legacy
+  // 'demo' study fallback.  New studies use the UUID from the URL path directly
+  // (payload.studyId).  These env vars can be removed from Vercel once all
+  // active studies are created through the Studies UI.
+  const envStudyId = process.env.BIOGRAPH_STUDY_ID;
+  const envVideoId = process.env.BIOGRAPH_VIDEO_ID;
   const dashboardBaseUrl = process.env.DASHBOARD_BASE_URL;
   const normalizedSourceUrl = normalizeSourceUrlForBiograph(payload.sourceUrl);
 
@@ -288,22 +330,29 @@ async function forwardToBiograph(payload: {
     };
   }
 
-  let activeStudyId = studyId;
-  let activeVideoId = videoId;
+  let activeStudyId: string | undefined;
+  let activeVideoId: string | undefined;
   let createdStudy = false;
   let createdVideo = false;
 
-  if (!activeStudyId || !activeVideoId) {
-    const created = await createStudyAndVideo(
+  const isDemoStudy = !payload.studyId || payload.studyId.toLowerCase() === 'demo';
+
+  if (isDemoStudy && envStudyId && envVideoId) {
+    // Legacy fallback: use hardcoded env vars for the demo study
+    activeStudyId = envStudyId;
+    activeVideoId = envVideoId;
+  } else {
+    // Dynamic routing: look up or create study+video by the URL's study UUID
+    const result = await createStudyAndVideo(
       baseUrl,
       payload.studyId,
       payload.videoId,
       normalizedSourceUrl
     );
-    activeStudyId = created.studyId;
-    activeVideoId = created.videoId;
-    createdStudy = created.created;
-    createdVideo = created.created;
+    activeStudyId = result.studyId;
+    activeVideoId = result.videoId;
+    createdStudy = result.createdStudy;
+    createdVideo = result.createdVideo;
   }
   if (!activeStudyId || !activeVideoId) {
     throw new Error('Failed to resolve study/video identifiers for biograph forwarding.');

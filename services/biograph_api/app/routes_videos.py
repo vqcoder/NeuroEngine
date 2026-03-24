@@ -48,8 +48,17 @@ logger = logging.getLogger(__name__)
 
 @router.post("/studies", response_model=StudyRead, status_code=201)
 def create_study(payload: StudyCreate, db: Session = Depends(get_db)) -> Study:
-    logger.info("create_study name=%s", payload.name)
+    logger.info("create_study name=%s id=%s", payload.name, payload.id)
+    # Idempotent: if an explicit ID is provided and a study with that ID
+    # already exists, return the existing record instead of creating a duplicate.
+    if payload.id is not None:
+        existing = db.get(Study, payload.id)
+        if existing is not None:
+            logger.info("create_study returning existing study id=%s", existing.id)
+            return existing
     study = Study(name=payload.name, description=payload.description)
+    if payload.id is not None:
+        study.id = payload.id
     db.add(study)
     db.commit()
     db.refresh(study)
@@ -165,7 +174,7 @@ def update_study(
     )
 
 
-@router.delete("/studies/{study_id}", status_code=204)
+@router.delete("/studies/{study_id}", status_code=204, response_model=None)
 def delete_study(study_id: UUID, db: Session = Depends(get_db)) -> None:
     logger.info("delete_study study_id=%s", study_id)
     study = db.get(Study, study_id)
@@ -285,7 +294,7 @@ def update_video(
     return VideoRead.model_validate(video)
 
 
-@router.delete("/videos/{video_id}", status_code=204)
+@router.delete("/videos/{video_id}", status_code=204, response_model=None)
 def delete_video(video_id: UUID, db: Session = Depends(get_db)) -> None:
     logger.info("delete_video video_id=%s", video_id)
     video = db.get(Video, video_id)

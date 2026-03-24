@@ -20,7 +20,7 @@ import {
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import type { StudyListItem } from '../types';
-import { createStudy, deleteStudy, fetchStudies } from '../api';
+import { createStudy, createVideo, deleteStudy, fetchStudies } from '../api';
 
 export default function StudiesPage() {
   const [studies, setStudies] = useState<StudyListItem[]>([]);
@@ -30,6 +30,7 @@ export default function StudiesPage() {
   const [newStudyOpen, setNewStudyOpen] = useState(false);
   const [newStudyName, setNewStudyName] = useState('');
   const [newStudyDescription, setNewStudyDescription] = useState('');
+  const [newStudyVideoUrl, setNewStudyVideoUrl] = useState('');
   const [creating, setCreating] = useState(false);
 
   // Delete confirmation
@@ -59,10 +60,14 @@ export default function StudiesPage() {
     if (!newStudyName.trim()) return;
     setCreating(true);
     try {
-      await createStudy(newStudyName.trim(), newStudyDescription.trim() || undefined);
+      const study = await createStudy(newStudyName.trim(), newStudyDescription.trim() || undefined);
+      // Create a video record so the study is ready to receive submissions
+      const videoUrl = newStudyVideoUrl.trim() || undefined;
+      await createVideo(study.id, newStudyName.trim(), videoUrl);
       setNewStudyOpen(false);
       setNewStudyName('');
       setNewStudyDescription('');
+      setNewStudyVideoUrl('');
       await loadStudies();
     } catch (err) {
       console.error('Failed to create study', err);
@@ -254,6 +259,16 @@ export default function StudiesPage() {
             rows={2}
             value={newStudyDescription}
             onChange={(e) => setNewStudyDescription(e.target.value)}
+            sx={{ mt: 2 }}
+            InputLabelProps={{ sx: { color: '#8a8895' } }}
+            InputProps={{ sx: { color: '#e8e6e3' } }}
+          />
+          <TextField
+            label="Video URL (optional)"
+            placeholder="https://example.com/video.mp4 or leave blank for default"
+            fullWidth
+            value={newStudyVideoUrl}
+            onChange={(e) => setNewStudyVideoUrl(e.target.value)}
             sx={{ mt: 2 }}
             InputLabelProps={{ sx: { color: '#8a8895' } }}
             InputProps={{ sx: { color: '#e8e6e3' } }}
