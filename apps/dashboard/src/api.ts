@@ -606,6 +606,27 @@ export async function createStudy(name: string, description?: string): Promise<S
   return body as StudyListItem;
 }
 
+export async function createVideo(
+  studyId: string,
+  title: string,
+  sourceUrl?: string,
+  durationMs?: number
+): Promise<{ id: string }> {
+  const response = await fetchApi('/videos', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      study_id: studyId,
+      title,
+      source_url: sourceUrl || '/sample.mp4',
+      duration_ms: durationMs ?? 60_000,
+    }),
+  });
+  const body = await response.json();
+  guardIsObject(body, 'POST /videos');
+  return body as { id: string };
+}
+
 export async function updateStudy(studyId: string, updates: { name?: string; description?: string }): Promise<StudyListItem> {
   const response = await fetchApi(`/studies/${studyId}`, {
     method: 'PATCH',

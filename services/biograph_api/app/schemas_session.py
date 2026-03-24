@@ -18,6 +18,7 @@ from .schemas_common import AU_DEFAULTS
 
 
 class StudyCreate(BaseModel):
+    id: Optional[UUID] = None
     name: str = Field(min_length=1, max_length=255)
     description: Optional[str] = None
 
