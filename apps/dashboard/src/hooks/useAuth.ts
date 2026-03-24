@@ -2,6 +2,14 @@ import { useEffect, useState } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
+export type WorkspaceTier = 'free' | 'creator' | 'enterprise';
+
+function extractTier(user: User | null): WorkspaceTier {
+  const raw = user?.app_metadata?.tier;
+  if (raw === 'free' || raw === 'enterprise') return raw;
+  return 'creator';
+}
+
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -49,6 +57,7 @@ export function useAuth() {
 
   return {
     user,
+    tier: extractTier(user),
     loading,
     signOut,
     authEnabled: !!supabase,

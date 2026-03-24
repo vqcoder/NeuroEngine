@@ -10,7 +10,7 @@ from time import monotonic
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import func as _sql_func
 from sqlalchemy.orm import Session
 
@@ -44,6 +44,7 @@ settings = get_settings()
 
 @router.get("/videos/{video_id}/readout", response_model=ReadoutPayload)
 def get_video_readout(
+    request: Request,
     video_id: UUID,
     session_id: Optional[UUID] = Query(default=None, description="Session mode filter."),
     session_id_legacy: Optional[UUID] = Query(default=None, alias="sessionId", include_in_schema=False),
@@ -96,6 +97,9 @@ def get_video_readout(
         canonical_name="workspace_tier",
         legacy_name="workspaceTier",
     )
+    # Fall back to tier extracted from JWT if no explicit query param
+    if resolved_workspace_tier is None:
+        resolved_workspace_tier = getattr(request.state, "workspace_tier", None)
     cache_key = build_readout_cache_key(
         video_id=video_id,
         session_id=resolved_session_id,
@@ -396,6 +400,7 @@ def get_catalog_reliability_report(
 
 @router.get("/videos/{video_id}/readout/export-package", response_model=ReadoutExportPackageResponse)
 def get_video_readout_export_package(
+    request: Request,
     video_id: UUID,
     session_id: Optional[UUID] = Query(default=None),
     session_id_legacy: Optional[UUID] = Query(default=None, alias="sessionId", include_in_schema=False),
@@ -444,6 +449,9 @@ def get_video_readout_export_package(
         canonical_name="workspace_tier",
         legacy_name="workspaceTier",
     )
+    # Fall back to tier extracted from JWT if no explicit query param
+    if resolved_workspace_tier is None:
+        resolved_workspace_tier = getattr(request.state, "workspace_tier", None)
     return build_video_readout_export_package(
         db,
         video_id,

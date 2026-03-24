@@ -13,7 +13,8 @@ import {
   Typography,
 } from '@mui/material';
 import ErrorBoundary from './components/ErrorBoundary';
-import { useAuth } from './hooks/useAuth';
+import { useAuth, type WorkspaceTier } from './hooks/useAuth';
+import AccountPage from './pages/AccountPage';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import ObservabilityPage from './pages/ObservabilityPage';
@@ -33,7 +34,13 @@ const NAV_LINK_SX = {
   '&:hover': { color: '#e8e6e3' }
 } as const;
 
-function AppHeader({ userEmail, onSignOut }: { userEmail?: string; onSignOut?: () => void }) {
+const TIER_BADGE: Record<WorkspaceTier, { label: string; color: string }> = {
+  free: { label: 'Free', color: '#6b7280' },
+  creator: { label: 'Creator', color: '#22c55e' },
+  enterprise: { label: 'Enterprise', color: '#f59e0b' },
+};
+
+function AppHeader({ userEmail, tier, onSignOut }: { userEmail?: string; tier?: WorkspaceTier; onSignOut?: () => void }) {
   return (
     <Box
       component="header"
@@ -133,18 +140,37 @@ function AppHeader({ userEmail, onSignOut }: { userEmail?: string; onSignOut?: (
         </Box>
         {userEmail && (
           <>
-            <Typography
-              sx={{ color: '#8a8895', fontFamily: '"JetBrains Mono", monospace', fontSize: '0.68rem', ml: 1 }}
+            {tier && (
+              <Box
+                sx={{
+                  px: 0.75,
+                  py: 0.15,
+                  borderRadius: '4px',
+                  border: `1px solid ${TIER_BADGE[tier].color}40`,
+                  color: TIER_BADGE[tier].color,
+                  fontFamily: '"JetBrains Mono", monospace',
+                  fontSize: '0.6rem',
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                  ml: 1,
+                }}
+              >
+                {TIER_BADGE[tier].label}
+              </Box>
+            )}
+            <Box
+              component={Link}
+              to="/account"
+              sx={{
+                color: '#8a8895',
+                fontFamily: '"JetBrains Mono", monospace',
+                fontSize: '0.68rem',
+                textDecoration: 'none',
+                '&:hover': { color: '#e8e6e3' },
+              }}
             >
               {userEmail}
-            </Typography>
-            <Button
-              size="small"
-              onClick={onSignOut}
-              sx={{ color: '#8a8895', textTransform: 'none', fontSize: '0.68rem', minWidth: 'auto' }}
-            >
-              Sign Out
-            </Button>
+            </Box>
           </>
         )}
       </Box>
@@ -169,7 +195,7 @@ function RouteErrorBoundary({ children, label }: { children: ReactNode; label: s
 
 export default function App() {
   const {
-    user, loading, signOut, authEnabled,
+    user, tier, loading, signOut, authEnabled,
     showPasswordReset, updatePassword, dismissPasswordReset,
   } = useAuth();
   const [newPassword, setNewPassword] = useState('');
@@ -208,7 +234,7 @@ export default function App() {
 
   return (
     <>
-      <AppHeader userEmail={user?.email} onSignOut={signOut} />
+      <AppHeader userEmail={user?.email} tier={tier} onSignOut={signOut} />
       <ErrorBoundary label="root">
         <Routes>
           <Route path="/" element={<RouteErrorBoundary label="home"><HomePage /></RouteErrorBoundary>} />
@@ -218,6 +244,7 @@ export default function App() {
           <Route path="/predictor" element={<RouteErrorBoundary label="predictor"><PredictorPage /></RouteErrorBoundary>} />
           <Route path="/videos/:videoId" element={<RouteErrorBoundary label="video-dashboard"><VideoDashboardPage /></RouteErrorBoundary>} />
           <Route path="/videos/:videoId/timeline-report" element={<RouteErrorBoundary label="timeline-report"><VideoTimelineReportPage /></RouteErrorBoundary>} />
+          <Route path="/account" element={<RouteErrorBoundary label="account"><AccountPage tier={tier} userEmail={user?.email} onSignOut={signOut} /></RouteErrorBoundary>} />
           <Route path="*" element={<RouteErrorBoundary label="home"><HomePage /></RouteErrorBoundary>} />
         </Routes>
       </ErrorBoundary>
