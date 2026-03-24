@@ -204,6 +204,7 @@ async def _token_auth_middleware(request: Request, call_next):
     jwt_payload = _verify_supabase_jwt(token)
     if jwt_payload is not None:
         request.state.user_id = jwt_payload.get("sub")
+        request.state.workspace_tier = jwt_payload.get("app_metadata", {}).get("tier", "creator")
         return await call_next(request)
 
     from fastapi.responses import JSONResponse  # noqa: PLC0415
