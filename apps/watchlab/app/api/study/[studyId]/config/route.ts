@@ -5,6 +5,45 @@ type Context = {
   params: Promise<{ studyId: string }>;
 };
 
+type BiographVideo = {
+  id: string;
+  source_url: string;
+};
+
+type BiographStudy = {
+  videos?: BiographVideo[];
+  title?: string;
+};
+
+const fetchStudyFromBiograph = async (
+  studyId: string,
+): Promise<{ videoId: string; videoUrl: string; title?: string } | null> => {
+  const baseUrl = process.env.BIOGRAPH_API_BASE_URL?.replace(/\/+$/, '');
+  if (!baseUrl) return null;
+
+  const token = process.env.BIOGRAPH_API_TOKEN?.trim();
+  const headers: Record<string, string> = { Accept: 'application/json' };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  try {
+    const res = await fetch(`${baseUrl}/studies/${encodeURIComponent(studyId)}`, {
+      headers,
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return null;
+
+    const data: BiographStudy = await res.json();
+    const video = data.videos?.[0];
+    if (!video?.id || !video?.source_url) return null;
+
+    return { videoId: video.id, videoUrl: video.source_url, title: data.title };
+  } catch {
+    return null;
+  }
+};
+
 const trimNonEmpty = (value: string | null): string | null => {
   if (!value) {
     return null;
@@ -80,12 +119,21 @@ export async function GET(request: Request, context: Context) {
   const normalizedOverrideVideoUrl = overrideVideoUrlRaw
     ? normalizeVideoAssetProxyUrl(overrideVideoUrlRaw)
     : null;
+  const biographStudy = await fetchStudyFromBiograph(studyId);
+
   const defaultVideo = normalizeVideoAssetProxyUrl(process.env.DEFAULT_STUDY_VIDEO_URL || '/sample.mp4');
   const defaultStudyVideoUrl = getDefaultStudyVideoUrl(studyId);
   const fallbackVideoUrl = defaultStudyVideoUrl ?? defaultVideo;
-  const title = hasConsistentOverrides && overrideTitle ? overrideTitle : `WatchLab Study ${studyId}`;
-  const videoId = studyId;
+  const title = biographStudy?.title
+    ? biographStudy.title
+    : hasConsistentOverrides && overrideTitle
+      ? overrideTitle
+      : `WatchLab Study ${studyId}`;
+  const videoId = biographStudy?.videoId ?? studyId;
   const requestedVideoUrl =
+    biographStudy?.videoUrl
+      ? normalizeVideoAssetProxyUrl(biographStudy.videoUrl)
+      :
     hasConsistentOverrides && normalizedOverrideVideoUrl && isAllowedVideoUrl(normalizedOverrideVideoUrl)
       ? normalizedOverrideVideoUrl
       : fallbackVideoUrl;

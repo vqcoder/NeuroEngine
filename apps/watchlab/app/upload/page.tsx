@@ -1,23 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  DEFAULT_VIDEO_LIBRARY,
-  buildStudyHref,
-  isHttpUrl,
-  makeVideoLibraryItem,
-  readVideoLibrary,
-  writeVideoLibrary,
-  type VideoLibraryItem
-} from '@/lib/videoLibrary';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { isHttpUrl } from '@/lib/videoLibrary';
 
 type UploadStep = 'idle' | 'queued' | 'downloading' | 'uploading' | 'complete' | 'error';
 
 const UPLOAD_STEPS: { key: Exclude<UploadStep, 'idle'>; label: string }[] = [
   { key: 'queued', label: 'Queued' },
-  { key: 'downloading', label: 'Downloading' },
-  { key: 'uploading', label: 'Uploading' },
+  { key: 'downloading', label: 'Creating study' },
+  { key: 'uploading', label: 'Registering video' },
   { key: 'complete', label: 'Complete' }
 ];
 
@@ -70,9 +62,9 @@ function UploadProgress({ step, elapsedSec, errorMessage }: { step: UploadStep; 
           <span className="status-good">Done!</span>
         ) : (
           <>
-            {step === 'queued' && 'Starting download…'}
-            {step === 'downloading' && `Downloading video… (${elapsedSec}s)`}
-            {step === 'uploading' && `Uploading to cloud… (${elapsedSec}s)`}
+            {step === 'queued' && 'Starting…'}
+            {step === 'downloading' && `Creating study… (${elapsedSec}s)`}
+            {step === 'uploading' && `Registering video… (${elapsedSec}s)`}
           </>
         )}
       </p>
@@ -87,10 +79,7 @@ export default function UploadPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [isResolvingVideoUrl, setIsResolvingVideoUrl] = useState(false);
-  const [refreshingId, setRefreshingId] = useState<string | null>(null);
-  const [hostingId, setHostingId] = useState<string | null>(null);
-  const [items, setItems] = useState<VideoLibraryItem[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // --- Upload progress bar state ---
   const [uploadStep, setUploadStep] = useState<UploadStep>('idle');
@@ -118,24 +107,12 @@ export default function UploadPage() {
     return () => stopProgressTimer();
   }, [stopProgressTimer]);
 
+  // Clear stale localStorage video library cache from the old UI
   useEffect(() => {
-    setItems(readVideoLibrary(typeof window !== 'undefined' ? window.localStorage : null));
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem('watchlab.videoLibrary.v1');
+    }
   }, []);
-
-  const totalLabel = useMemo(() => {
-    if (items.length === 0) {
-      return 'No videos saved yet.';
-    }
-    if (items.length === 1) {
-      return '1 video saved.';
-    }
-    return `${items.length} videos saved.`;
-  }, [items.length]);
-
-  const persistItems = (nextItems: VideoLibraryItem[]) => {
-    setItems(nextItems);
-    writeVideoLibrary(typeof window !== 'undefined' ? window.localStorage : null, nextItems);
-  };
 
   const createStudy = async (sourceUrl: string, titleHint: string) => {
     const response = await fetch('/api/video/download', {
@@ -159,7 +136,7 @@ export default function UploadPage() {
     };
   };
 
-  const onAddVideo = async (event: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmedUrl = videoUrl.trim();
     setNotice(null);
@@ -173,7 +150,7 @@ export default function UploadPage() {
     }
 
     // --- Start progress bar ---
-    setIsResolvingVideoUrl(true);
+    setIsSubmitting(true);
     setError(null);
     setUploadError(undefined);
     setInviteUrl(null);
@@ -181,10 +158,10 @@ export default function UploadPage() {
     setUploadStep('queued');
     startProgressTimer();
 
-    // Advance to "downloading" after a brief moment
+    // Advance to "creating study" after a brief moment
     const advanceTimer = setTimeout(() => setUploadStep('downloading'), 800);
 
-    // Advance to "uploading" after a few seconds
+    // Advance to "registering video" after a few seconds
     const uploadTimer = setTimeout(() => setUploadStep('uploading'), 3_000);
 
     try {
@@ -196,16 +173,11 @@ export default function UploadPage() {
       setUploadStep('complete');
       stopProgressTimer();
 
-      const nextItem = makeVideoLibraryItem(
-        { title: title.trim(), videoUrl: trimmedUrl, originalUrl: trimmedUrl },
-        items
-      );
-      persistItems([...items, nextItem]);
       setVideoUrl('');
       setTitle('');
       setError(null);
       setInviteUrl(result.inviteUrl);
-      setNotice(`Study created: ${nextItem.title}`);
+      setNotice('Study created successfully.');
 
       // Auto-hide progress bar after a few seconds
       setTimeout(() => setUploadStep('idle'), 4000);
@@ -220,55 +192,7 @@ export default function UploadPage() {
       setUploadError(msg);
       setError(msg);
     } finally {
-      setIsResolvingVideoUrl(false);
-    }
-  };
-
-  const onRemoveVideo = (id: string) => {
-    const nextItems = items.filter((item) => item.id !== id);
-    persistItems(nextItems);
-  };
-
-  const onClearLibrary = () => {
-    persistItems([]);
-  };
-
-  const onResetToDefaults = () => {
-    persistItems(DEFAULT_VIDEO_LIBRARY);
-    setNotice('Library reset to default videos.');
-  };
-
-  const onHostInCloud = async (item: VideoLibraryItem) => {
-    const sourceUrl = item.originalUrl || item.videoUrl;
-    if (!isHttpUrl(sourceUrl)) return;
-    setHostingId(item.id);
-    setError(null);
-    try {
-      const result = await createStudy(sourceUrl, item.title);
-      setNotice(`Study created: ${item.title}`);
-      setInviteUrl(result.inviteUrl);
-      setCopied(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Study creation failed.');
-    } finally {
-      setHostingId(null);
-    }
-  };
-
-  const onRefreshVideoUrl = async (item: VideoLibraryItem) => {
-    const sourceUrl = item.originalUrl || item.videoUrl;
-    if (!isHttpUrl(sourceUrl)) return;
-    setRefreshingId(item.id);
-    setError(null);
-    try {
-      const result = await createStudy(sourceUrl, item.title);
-      setNotice(`Study created: ${item.title}`);
-      setInviteUrl(result.inviteUrl);
-      setCopied(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Refresh failed.');
-    } finally {
-      setRefreshingId(null);
+      setIsSubmitting(false);
     }
   };
 
@@ -287,14 +211,12 @@ export default function UploadPage() {
     <main>
       <div className="stack" style={{ maxWidth: 980, margin: '0 auto' }}>
         <section className="panel stack" data-testid="upload-page">
-          <h1>Video Library Upload</h1>
+          <h1>Create Study</h1>
           <p>
-            Add study videos once, then run participants through the sequence with one click.
-            When a video ends, WatchLab can launch the next study directly.
+            Add a video URL to create a new study. Share the invite link with participants.
           </p>
-          <p className="muted">{totalLabel}</p>
 
-          <form className="stack" onSubmit={onAddVideo}>
+          <form className="stack" onSubmit={onSubmit}>
             <label htmlFor="video-title">Study title (optional)</label>
             <input
               id="video-title"
@@ -334,15 +256,10 @@ export default function UploadPage() {
                 type="submit"
                 className="primary"
                 data-testid="add-video-button"
-                disabled={isResolvingVideoUrl}
+                disabled={isSubmitting}
               >
-                {isResolvingVideoUrl ? 'Hosting in cloud...' : 'Add to library'}
+                {isSubmitting ? 'Creating study...' : 'Create study'}
               </button>
-              {items.length > 0 ? (
-                <Link href={buildStudyHref(items[0], 0)} className="button-link" data-testid="start-sequence-link">
-                  Start sequence (video 1)
-                </Link>
-              ) : null}
               <Link href="/" className="button-link" data-testid="back-home-link">
                 Back home
               </Link>
@@ -406,64 +323,6 @@ export default function UploadPage() {
               </div>
             ) : null}
           </form>
-        </section>
-
-        <section className="panel stack" data-testid="library-list-panel">
-          <h2>Saved Study Sequence</h2>
-          {items.length === 0 ? (
-            <p className="muted">
-              No entries yet. Add at least one URL above to build a click-through sequence.
-            </p>
-          ) : (
-            <div className="stack">
-              {items.map((item, index) => (
-                <div key={item.id} className="panel stack" style={{ padding: '16px' }} data-testid="library-item">
-                  <div className="row" style={{ justifyContent: 'space-between' }}>
-                    <strong>
-                      {index + 1}. {item.title}
-                    </strong>
-                    <small>Study ID: {item.studyId}</small>
-                  </div>
-                  <small style={{ wordBreak: 'break-all' }}>{item.videoUrl}</small>
-                  <div className="row">
-                    <Link href={buildStudyHref(item, index)} className="button-link" data-testid="start-item-link">
-                      Start this study
-                    </Link>
-                    {isHttpUrl(item.originalUrl ?? item.videoUrl) ? (
-                      <button
-                        onClick={() => void onRefreshVideoUrl(item)}
-                        disabled={refreshingId === item.id || hostingId === item.id}
-                        data-testid="refresh-item-button"
-                      >
-                        {refreshingId === item.id ? 'Re-hosting...' : 'Re-host in cloud'}
-                      </button>
-                    ) : null}
-                    <button
-                      onClick={() => void onHostInCloud(item)}
-                      disabled={hostingId === item.id || refreshingId === item.id}
-                      data-testid="host-cloud-button"
-                    >
-                      {hostingId === item.id ? 'Uploading...' : 'Host in cloud'}
-                    </button>
-                    <button onClick={() => onRemoveVideo(item.id)} data-testid="remove-item-button">
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="row">
-            <button onClick={onResetToDefaults} data-testid="reset-library-button">
-              Reset to defaults
-            </button>
-            {items.length > 0 ? (
-              <button onClick={onClearLibrary} data-testid="clear-library-button">
-                Clear library
-              </button>
-            ) : null}
-          </div>
         </section>
       </div>
     </main>
