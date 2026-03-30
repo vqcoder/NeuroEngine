@@ -297,7 +297,7 @@ export const applyCanonicalLibraryParams = (
 
 // ── Pure video URL helpers (also used inside the component) ───────────────
 
-export const isGithubHostedVideoUrl = (url: string): boolean => {
+export const isCloudHostedVideoUrl = (url: string): boolean => {
   const trimmed = url.trim();
   if (!trimmed) {
     return false;
@@ -313,6 +313,9 @@ export const isGithubHostedVideoUrl = (url: string): boolean => {
       host.endsWith('.up.railway.app') &&
       parsed.pathname.startsWith('/video-assets/')
     ) {
+      return true;
+    }
+    if (host.endsWith('.supabase.co') || host.endsWith('.supabase.in')) {
       return true;
     }
   } catch {
