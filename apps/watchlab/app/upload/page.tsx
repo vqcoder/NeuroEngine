@@ -85,6 +85,8 @@ export default function UploadPage() {
   const [title, setTitle] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [isResolvingVideoUrl, setIsResolvingVideoUrl] = useState(false);
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
   const [hostingId, setHostingId] = useState<string | null>(null);
@@ -135,25 +137,25 @@ export default function UploadPage() {
     writeVideoLibrary(typeof window !== 'undefined' ? window.localStorage : null, nextItems);
   };
 
-  const hostVideoAsset = async (sourceUrl: string, titleHint: string) => {
+  const createStudy = async (sourceUrl: string, titleHint: string) => {
     const response = await fetch('/api/video/download', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url: sourceUrl, title: titleHint })
     });
     const body = (await response.json().catch(() => null)) as
-      | { videoUrl?: string; alreadyUploaded?: boolean; error?: string }
+      | { success?: boolean; studyId?: string; videoId?: string; inviteUrl?: string; error?: string }
       | null;
     if (!response.ok) {
-      throw new Error(body?.error ?? `Cloud hosting failed (${response.status}).`);
+      throw new Error(body?.error ?? `Study creation failed (${response.status}).`);
     }
-    const hostedUrl = body?.videoUrl?.trim() ?? '';
-    if (!hostedUrl || (!isHttpUrl(hostedUrl) && !hostedUrl.startsWith('/'))) {
-      throw new Error('Cloud hosting returned an invalid URL.');
+    if (!body?.studyId || !body?.inviteUrl) {
+      throw new Error('Study creation returned an incomplete response.');
     }
     return {
-      hostedUrl,
-      alreadyUploaded: Boolean(body?.alreadyUploaded)
+      studyId: body.studyId,
+      videoId: body.videoId!,
+      inviteUrl: body.inviteUrl,
     };
   };
 
@@ -174,47 +176,36 @@ export default function UploadPage() {
     setIsResolvingVideoUrl(true);
     setError(null);
     setUploadError(undefined);
+    setInviteUrl(null);
+    setCopied(false);
     setUploadStep('queued');
     startProgressTimer();
 
     // Advance to "downloading" after a brief moment
     const advanceTimer = setTimeout(() => setUploadStep('downloading'), 800);
 
-    // Advance to "uploading" after ~25s (estimated download time)
-    const uploadTimer = setTimeout(() => setUploadStep('uploading'), 25_000);
+    // Advance to "uploading" after a few seconds
+    const uploadTimer = setTimeout(() => setUploadStep('uploading'), 3_000);
 
     try {
-      const hosted = await hostVideoAsset(trimmedUrl, title.trim() || 'study-video');
+      const result = await createStudy(trimmedUrl, title.trim() || 'study-video');
 
       clearTimeout(advanceTimer);
       clearTimeout(uploadTimer);
 
-      const existingUrl = items.find((entry) => entry.videoUrl === hosted.hostedUrl);
-      if (existingUrl) {
-        throw new Error('This video URL is already in your library.');
-      }
-
-      // Flash "uploading" briefly if it was still downloading, then complete
-      if (uploadStep !== 'uploading') {
-        setUploadStep('uploading');
-      }
-      await new Promise((resolve) => setTimeout(resolve, 400));
       setUploadStep('complete');
       stopProgressTimer();
 
       const nextItem = makeVideoLibraryItem(
-        { title: title.trim(), videoUrl: hosted.hostedUrl, originalUrl: trimmedUrl },
+        { title: title.trim(), videoUrl: trimmedUrl, originalUrl: trimmedUrl },
         items
       );
       persistItems([...items, nextItem]);
       setVideoUrl('');
       setTitle('');
       setError(null);
-      setNotice(
-        hosted.alreadyUploaded
-          ? `Added existing hosted asset: ${nextItem.title}`
-          : `Added and hosted in cloud: ${nextItem.title}`
-      );
+      setInviteUrl(result.inviteUrl);
+      setNotice(`Study created: ${nextItem.title}`);
 
       // Auto-hide progress bar after a few seconds
       setTimeout(() => setUploadStep('idle'), 4000);
@@ -224,7 +215,7 @@ export default function UploadPage() {
       stopProgressTimer();
       const msg = resolveError instanceof Error
         ? resolveError.message
-        : 'Unable to host this source URL.';
+        : 'Unable to create study.';
       setUploadStep('error');
       setUploadError(msg);
       setError(msg);
@@ -253,20 +244,12 @@ export default function UploadPage() {
     setHostingId(item.id);
     setError(null);
     try {
-      const hosted = await hostVideoAsset(sourceUrl, item.title);
-      const nextItems = items.map((entry) =>
-        entry.id === item.id
-          ? { ...entry, videoUrl: hosted.hostedUrl, originalUrl: sourceUrl }
-          : entry
-      );
-      persistItems(nextItems);
-      setNotice(
-        hosted.alreadyUploaded
-          ? `Already hosted: ${item.title}`
-          : `Hosted in cloud: ${item.title}`
-      );
+      const result = await createStudy(sourceUrl, item.title);
+      setNotice(`Study created: ${item.title}`);
+      setInviteUrl(result.inviteUrl);
+      setCopied(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Cloud hosting failed.');
+      setError(err instanceof Error ? err.message : 'Study creation failed.');
     } finally {
       setHostingId(null);
     }
@@ -274,24 +257,29 @@ export default function UploadPage() {
 
   const onRefreshVideoUrl = async (item: VideoLibraryItem) => {
     const sourceUrl = item.originalUrl || item.videoUrl;
-    if (!isHttpUrl(sourceUrl)) {
-      return;
-    }
+    if (!isHttpUrl(sourceUrl)) return;
     setRefreshingId(item.id);
     setError(null);
     try {
-      const hosted = await hostVideoAsset(sourceUrl, item.title);
-      const nextItems = items.map((entry) =>
-        entry.id === item.id
-          ? { ...entry, videoUrl: hosted.hostedUrl, originalUrl: sourceUrl }
-          : entry
-      );
-      persistItems(nextItems);
-      setNotice(hosted.alreadyUploaded ? `Already hosted: ${item.title}` : `Re-hosted: ${item.title}`);
+      const result = await createStudy(sourceUrl, item.title);
+      setNotice(`Study created: ${item.title}`);
+      setInviteUrl(result.inviteUrl);
+      setCopied(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Refresh failed.');
     } finally {
       setRefreshingId(null);
+    }
+  };
+
+  const onCopyInviteUrl = async () => {
+    if (!inviteUrl) return;
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback: select the input text
     }
   };
 
@@ -367,6 +355,55 @@ export default function UploadPage() {
               <p className="status-good" data-testid="upload-add-notice">
                 {notice}
               </p>
+            ) : null}
+
+            {inviteUrl ? (
+              <div
+                data-testid="invite-url-panel"
+                style={{
+                  background: '#111116',
+                  border: '1px solid #26262f',
+                  borderRadius: 8,
+                  padding: '12px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                }}
+              >
+                <input
+                  type="text"
+                  readOnly
+                  value={inviteUrl}
+                  data-testid="invite-url-input"
+                  style={{
+                    flex: 1,
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#e0e0e0',
+                    fontFamily: 'monospace',
+                    fontSize: 14,
+                    outline: 'none',
+                  }}
+                  onFocus={(e) => e.target.select()}
+                />
+                <button
+                  type="button"
+                  onClick={() => void onCopyInviteUrl()}
+                  data-testid="copy-invite-url-button"
+                  style={{
+                    background: '#c8f031',
+                    color: '#111116',
+                    border: 'none',
+                    borderRadius: 6,
+                    padding: '6px 14px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {copied ? 'Copied!' : 'Copy link'}
+                </button>
+              </div>
             ) : null}
           </form>
         </section>
