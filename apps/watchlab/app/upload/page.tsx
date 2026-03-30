@@ -1,8 +1,17 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { isHttpUrl } from '@/lib/videoLibrary';
+import {
+  DEFAULT_VIDEO_LIBRARY,
+  buildStudyHref,
+  isHttpUrl,
+  makeVideoLibraryItem,
+  readVideoLibrary,
+  writeVideoLibrary,
+  type VideoLibraryItem
+} from '@/lib/videoLibrary';
 
 type UploadStep = 'idle' | 'queued' | 'downloading' | 'uploading' | 'complete' | 'error';
 
@@ -12,6 +21,35 @@ const UPLOAD_STEPS: { key: Exclude<UploadStep, 'idle'>; label: string }[] = [
   { key: 'uploading', label: 'Registering video' },
   { key: 'complete', label: 'Complete' }
 ];
+
+const cardStyle: React.CSSProperties = {
+  background: '#111116',
+  border: '1px solid #26262f',
+  borderRadius: 8,
+  padding: '14px 16px',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 10,
+};
+
+const btnBase: React.CSSProperties = {
+  fontFamily: 'monospace',
+  fontSize: 11,
+  fontWeight: 600,
+  textTransform: 'uppercase',
+  letterSpacing: '0.04em',
+  padding: '5px 12px',
+  borderRadius: 5,
+  border: '1px solid #26262f',
+  background: 'transparent',
+  color: '#e8e6e3',
+  cursor: 'pointer',
+};
+
+function truncateUrl(url: string, max = 60): string {
+  if (url.length <= max) return url;
+  return url.slice(0, max - 1) + '…';
+}
 
 function UploadProgress({ step, elapsedSec, errorMessage }: { step: UploadStep; elapsedSec: number; errorMessage?: string }) {
   if (step === 'idle') return null;
@@ -73,6 +111,7 @@ function UploadProgress({ step, elapsedSec, errorMessage }: { step: UploadStep; 
 }
 
 export default function UploadPage() {
+  const router = useRouter();
   const [videoUrl, setVideoUrl] = useState('');
   const [title, setTitle] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -80,6 +119,7 @@ export default function UploadPage() {
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [items, setItems] = useState<VideoLibraryItem[]>([]);
 
   // --- Upload progress bar state ---
   const [uploadStep, setUploadStep] = useState<UploadStep>('idle');
@@ -107,12 +147,17 @@ export default function UploadPage() {
     return () => stopProgressTimer();
   }, [stopProgressTimer]);
 
-  // Clear stale localStorage video library cache from the old UI
+  // Load video library from localStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      window.localStorage.removeItem('watchlab.videoLibrary.v1');
+      setItems(readVideoLibrary(window.localStorage));
     }
   }, []);
+
+  const persistItems = (nextItems: VideoLibraryItem[]) => {
+    setItems(nextItems);
+    writeVideoLibrary(typeof window !== 'undefined' ? window.localStorage : null, nextItems);
+  };
 
   const createStudy = async (sourceUrl: string, titleHint: string) => {
     const response = await fetch('/api/video/download', {
@@ -173,11 +218,17 @@ export default function UploadPage() {
       setUploadStep('complete');
       stopProgressTimer();
 
+      const nextItem = makeVideoLibraryItem(
+        { title: title.trim(), videoUrl: trimmedUrl, originalUrl: trimmedUrl },
+        items
+      );
+      persistItems([...items, nextItem]);
+
       setVideoUrl('');
       setTitle('');
       setError(null);
       setInviteUrl(result.inviteUrl);
-      setNotice('Study created successfully.');
+      setNotice(`Study created: ${nextItem.title}`);
 
       // Auto-hide progress bar after a few seconds
       setTimeout(() => setUploadStep('idle'), 4000);
@@ -205,6 +256,18 @@ export default function UploadPage() {
     } catch {
       // Fallback: select the input text
     }
+  };
+
+  const onRemoveItem = (id: string) => {
+    persistItems(items.filter((item) => item.id !== id));
+  };
+
+  const onResetToDefaults = () => {
+    persistItems(DEFAULT_VIDEO_LIBRARY);
+  };
+
+  const onClearLibrary = () => {
+    persistItems([]);
   };
 
   return (
@@ -323,6 +386,90 @@ export default function UploadPage() {
               </div>
             ) : null}
           </form>
+        </section>
+
+        {/* ── Saved Study Sequence ── */}
+        <section className="panel stack" data-testid="video-library-section">
+          <h2>Saved Study Sequence</h2>
+          <p style={{ color: '#8a8895', fontSize: 14 }}>
+            {items.length === 0
+              ? 'No videos saved yet.'
+              : items.length === 1
+                ? '1 video saved.'
+                : `${items.length} videos saved.`}
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {items.map((item, idx) => (
+              <div key={item.id} style={cardStyle} data-testid={`library-card-${item.id}`}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'baseline' }}>
+                    <span style={{ color: '#5a585c', fontFamily: 'monospace', fontSize: 13, fontWeight: 600 }}>
+                      {idx + 1}.
+                    </span>
+                    <span style={{ color: '#fff', fontWeight: 700, fontSize: 15 }}>
+                      {item.title}
+                    </span>
+                  </div>
+                  <span style={{ color: '#5a585c', fontFamily: 'monospace', fontSize: 12, flexShrink: 0 }}>
+                    {item.studyId}
+                  </span>
+                </div>
+
+                <span style={{ color: '#8a8895', fontSize: 12, fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                  {truncateUrl(item.videoUrl)}
+                </span>
+
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
+                  <button
+                    type="button"
+                    style={btnBase}
+                    data-testid={`start-study-${item.studyId}`}
+                    onClick={() => router.push(buildStudyHref(item, idx))}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = '#c8f031'; e.currentTarget.style.borderColor = '#c8f031'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = '#e8e6e3'; e.currentTarget.style.borderColor = '#26262f'; }}
+                  >
+                    START THIS STUDY
+                  </button>
+                  <button type="button" style={{ ...btnBase, opacity: 0.4, cursor: 'not-allowed' }} disabled title="Coming soon">
+                    RE-HOST IN CLOUD
+                  </button>
+                  <button type="button" style={{ ...btnBase, opacity: 0.4, cursor: 'not-allowed' }} disabled title="Coming soon">
+                    HOST IN CLOUD
+                  </button>
+                  <button
+                    type="button"
+                    style={btnBase}
+                    data-testid={`remove-${item.id}`}
+                    onClick={() => onRemoveItem(item.id)}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = '#f05050'; e.currentTarget.style.borderColor = '#f05050'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = '#e8e6e3'; e.currentTarget.style.borderColor = '#26262f'; }}
+                  >
+                    REMOVE
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+            <button
+              type="button"
+              style={btnBase}
+              data-testid="reset-to-defaults"
+              onClick={onResetToDefaults}
+            >
+              RESET TO DEFAULTS
+            </button>
+            <button
+              type="button"
+              style={btnBase}
+              data-testid="clear-library"
+              onClick={onClearLibrary}
+            >
+              CLEAR LIBRARY
+            </button>
+          </div>
         </section>
       </div>
     </main>
