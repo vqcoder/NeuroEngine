@@ -36,7 +36,7 @@ import {
   looksLikeHlsUrl,
   toHlsProxyUrl,
   getDefaultStudyFallbackUrl,
-  isGithubHostedVideoUrl,
+  isCloudHostedVideoUrl,
   mapToProxyAssetUrl,
   normalizeLegacyAssetUrl
 } from '@/lib/studyHelpers';
@@ -334,7 +334,7 @@ export default function StudyClient({ studyId }: { studyId: string }) {
       persistHostedLibraryVideo(proxiedUrl, sourceUrl);
       return proxiedUrl;
     }
-    if (!isHttpUrl(sourceUrl) || isGithubHostedVideoUrl(sourceUrl)) {
+    if (!isHttpUrl(sourceUrl) || isCloudHostedVideoUrl(sourceUrl)) {
       return null;
     }
     if (cloudHostingAttemptedRef.current.has(sourceUrl) || cloudHostingInFlightRef.current) {
@@ -633,7 +633,7 @@ export default function StudyClient({ studyId }: { studyId: string }) {
     ]
       .map((value) => value.trim())
       .filter((value, index, list) => value.length > 0 && list.indexOf(value) === index)
-      .filter((value) => isHttpUrl(value) && !isGithubHostedVideoUrl(value));
+      .filter((value) => isHttpUrl(value) && !isCloudHostedVideoUrl(value));
 
     if (!isDefaultStudyWithPinnedFallback) {
       for (const candidate of hostingCandidates) {
